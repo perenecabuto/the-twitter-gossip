@@ -12,6 +12,10 @@ type MessageClassifier struct {
 	matchCallback func(tweet *twitter.Tweet)
 }
 
+func NewMessageClassifier(label string, patterns []*regexp.Regexp, callback func(tweet *twitter.Tweet)) *MessageClassifier {
+	return &MessageClassifier{label, patterns, callback}
+}
+
 func (mc *MessageClassifier) Matches(message string) bool {
 	for _, pattern := range mc.patterns {
 		if pattern.MatchString(message) {
