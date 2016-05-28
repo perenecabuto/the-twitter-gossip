@@ -1,0 +1,35 @@
+{
+    "version": "0.0.0",
+    "private": true,
+    "license": "see LICENSE file",
+    "description": "Code from the React tutorial.",
+    "main": "server.js",
+    "dependencies": {
+        "mqtt": "*",
+        "react": "*",
+        "react-dom": "*",
+        "d3": "^3.5.6",
+        "react-d3-basic": "*",
+        "react-d3-zoom": "*",
+        "react-d3-brush": "*",
+        "body-parser": "^1.4.3"
+    },
+    "devDependencies": {
+        "babel-core": "6.7.7",
+        "babel-loader": "6.2.4",
+        "babel-preset-es2015": "6.6.0",
+        "babel-preset-react": "6.5.0",
+        "browser-sync-webpack-plugin": "*",
+        "webpack": "*",
+        "browserify": "*"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/reactjs/react-tutorial.git"
+    },
+    "author": "Felipe Ramos",
+    "engines" : {
+        "node" : "0.12.x"
+    }
+}
+
