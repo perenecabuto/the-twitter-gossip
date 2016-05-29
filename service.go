@@ -10,6 +10,7 @@ type DummyGossipService struct{}
 
 func (s *DummyGossipService) FindAllGossip() []*Gossip {
 	list := []*Gossip{}
+	list = append(list, s.FindGossipByLabel("morte"))
 	list = append(list, s.FindGossipByLabel("fofoca"))
 	list = append(list, s.FindGossipByLabel("problema"))
 	list = append(list, s.FindGossipByLabel("buceta"))
@@ -28,10 +29,10 @@ func (s *DummyGossipService) FindGossipByLabel(label string) *Gossip {
 
 func (s *DummyGossipService) FindClassifiersByGossip(g *Gossip) []*GossipClassifier {
 	return []*GossipClassifier{
-		&GossipClassifier{Label: g.Label + " Anything", Patterns: []string{
+		&GossipClassifier{Label: "Anything", Patterns: []string{
 			".*",
 		}},
-		&GossipClassifier{Label: g.Label + " Bad", Patterns: []string{
+		&GossipClassifier{Label: "Bad", Patterns: []string{
 			"x",
 			"corrup",
 			"defeito",
@@ -41,7 +42,7 @@ func (s *DummyGossipService) FindClassifiersByGossip(g *Gossip) []*GossipClassif
 			"odeio",
 			"raiva",
 		}},
-		&GossipClassifier{Label: g.Label + " Good", Patterns: []string{
+		&GossipClassifier{Label: "Good", Patterns: []string{
 			"legal",
 			"bem",
 			"indo bem",

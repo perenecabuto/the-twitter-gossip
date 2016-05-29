@@ -117,7 +117,6 @@
 	        }
 
 	        MessageManager.onMessage(function (message) {
-	            console.log(message);
 	            if (message.gossip !== undefined && message.gossip !== this.props.name) {
 	                return;
 	            }
@@ -139,7 +138,6 @@
 	            }
 
 	            var data = this.state.data || [];
-	            console.log(data.length, this.state.maxItems);
 	            if (data.length == this.state.maxItems) {
 	                data.shift();
 	            }
@@ -191,7 +189,7 @@
 	                    Object.keys(this.state.gossips).map(function (label) {
 	                        return React.createElement(
 	                            'div',
-	                            { className: 'pull-left col-xs-12 col-sm-6 col-md-6 col-lg-6' },
+	                            { className: 'pull-left col-xs-12 col-sm-8 col-md-6 col-lg-6' },
 	                            React.createElement(MultLineChartBox, { name: label })
 	                        );
 	                    })
@@ -207,15 +205,19 @@
 	            { className: 'container' },
 	            React.createElement(
 	                'h1',
-	                { style: { paddingLeft: "12px" } },
+	                null,
 	                'Dashboard'
 	            ),
 	            React.createElement(
 	                'div',
-	                { ref: function ref(_ref2) {
+	                { className: 'row', ref: function ref(_ref2) {
 	                        return _this2._el = _ref2;
 	                    } },
-	                'Loading...'
+	                React.createElement(
+	                    'div',
+	                    { className: 'col-xs-12 col-sm-12 col-md-12 col-lg-12' },
+	                    'Loading...'
+	                )
 	            )
 	        );
 	    }

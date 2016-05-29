@@ -66,7 +66,6 @@ var MultLineChartBox = React.createClass({
         }
 
         MessageManager.onMessage(function(message) {
-            console.log(message);
             if (message.gossip !== undefined && message.gossip !== this.props.name) {
                 return;
             }
@@ -88,7 +87,6 @@ var MultLineChartBox = React.createClass({
             }
 
             var data = this.state.data || [];
-            console.log(data.length, this.state.maxItems);
             if (data.length == this.state.maxItems) {
                 data.shift();
             }
@@ -125,7 +123,7 @@ var App = React.createClass({
                     <div>
                     {Object.keys(this.state.gossips).map(function(label) {
                         return (
-                        <div className="pull-left col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <div className="pull-left col-xs-12 col-sm-8 col-md-6 col-lg-6">
                             <MultLineChartBox name={label} />
                         </div>)
                     })}
@@ -138,8 +136,10 @@ var App = React.createClass({
     render: function() {
         return (
         <div className="container">
-            <h1 style={{paddingLeft: "12px"}}>Dashboard</h1>
-            <div ref={(ref) => this._el = ref}>Loading...</div>
+            <h1>Dashboard</h1>
+            <div className="row" ref={(ref) => this._el = ref}>
+                <div className="col-xs-12 col-sm-12 col-md-12 col-lg-12">Loading...</div>
+            </div>
         </div>
         );
     }
