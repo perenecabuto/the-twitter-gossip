@@ -115,17 +115,23 @@
 	        if (this.props.topValue) {
 	            chartSeries.push({ field: "top", name: "", color: "transparent" });
 	        }
+
 	        MessageManager.onMessage(function (message) {
+	            console.log(message);
+	            if (message.gossip !== undefined && message.gossip !== this.props.name) {
+	                return;
+	            }
+
 	            var item = { key: 'key', index: new Date() };
 	            if (this.props.topValue) {
 	                item.top = this.props.topValue;
 	            }
 
-	            for (var key in message) {
+	            for (var key in message.events) {
 	                var alreadyInChart = false;
 	                for (var i in chartSeries) {
 	                    alreadyInChart = alreadyInChart || chartSeries[i].field == key;
-	                    item[key] = message[key];
+	                    item[key] = message.events[key];
 	                }
 	                if (!alreadyInChart) {
 	                    chartSeries.push({ field: key, name: key, color: this.getRandomColor() });
@@ -152,7 +158,8 @@
 	            React.createElement(
 	                'div',
 	                { className: 'panel-heading' },
-	                'Realtime Chart'
+	                'Gossip: ',
+	                this.props.name
 	            ),
 	            React.createElement(
 	                'div',
@@ -169,7 +176,32 @@
 	var App = React.createClass({
 	    displayName: 'App',
 
+	    getInitialState: function getInitialState() {
+	        return {
+	            gossips: {}
+	        };
+	    },
+	    componentDidMount: function componentDidMount() {
+	        MessageManager.onMessage(function (message) {
+	            if (this.state.gossips[message.gossip] === undefined) {
+	                this.state.gossips[message.gossip] = true;
+	                ReactDOM.render(React.createElement(
+	                    'div',
+	                    null,
+	                    Object.keys(this.state.gossips).map(function (label) {
+	                        return React.createElement(
+	                            'div',
+	                            { className: 'pull-left col-xs-12 col-sm-6 col-md-6 col-lg-6' },
+	                            React.createElement(MultLineChartBox, { name: label })
+	                        );
+	                    })
+	                ), this._el);
+	            }
+	        }.bind(this));
+	    },
 	    render: function render() {
+	        var _this2 = this;
+
 	        return React.createElement(
 	            'div',
 	            { className: 'container' },
@@ -180,8 +212,10 @@
 	            ),
 	            React.createElement(
 	                'div',
-	                { className: 'pull-left col-xs-12 col-sm-6 col-md-6 col-lg-6' },
-	                React.createElement(MultLineChartBox, { name: 'gossip', topic: 'mydome/humidity/value' })
+	                { ref: function ref(_ref2) {
+	                        return _this2._el = _ref2;
+	                    } },
+	                'Loading...'
 	            )
 	        );
 	    }

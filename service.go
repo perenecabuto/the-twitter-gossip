@@ -1,18 +1,32 @@
 package main
 
-type DummyGossipService struct {
+type GossipService interface {
+	FindAllGossip() []*Gossip
+	FindGossipByLabel(label string) *Gossip
+	FindClassifiersByGossip(g *Gossip) []*GossipClassifier
 }
 
-func (dr *DummyGossipService) FindGossipByLabel(label string) *Gossip {
+type DummyGossipService struct{}
+
+func (s *DummyGossipService) FindAllGossip() []*Gossip {
+	list := []*Gossip{}
+	list = append(list, s.FindGossipByLabel("fofoca"))
+	list = append(list, s.FindGossipByLabel("problema"))
+	list = append(list, s.FindGossipByLabel("buceta"))
+	list = append(list, s.FindGossipByLabel("cu"))
+	return list
+}
+
+func (s *DummyGossipService) FindGossipByLabel(label string) *Gossip {
 	gossip := &Gossip{
 		Label:    label,
-		Subjects: []string{"pt"},
+		Subjects: []string{label},
 	}
 
 	return gossip
 }
 
-func (dr *DummyGossipService) FindClassifiersByGossip(g *Gossip) []*GossipClassifier {
+func (s *DummyGossipService) FindClassifiersByGossip(g *Gossip) []*GossipClassifier {
 	return []*GossipClassifier{
 		&GossipClassifier{Label: g.Label + " Anything", Patterns: []string{
 			".*",

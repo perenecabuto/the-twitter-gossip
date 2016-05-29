@@ -12,15 +12,13 @@ import (
 )
 
 func main() {
-	events := make(chan string, 1024)
-	service := &DummyGossipService{}
-	gossip := service.FindGossipByLabel("test 1")
-	gossipClassifiers := service.FindClassifiersByGossip(gossip)
-	go NewGossipRadarWorker(gossip, gossipClassifiers, events)
+	events := make(chan string)
 
-	gossip2 := service.FindGossipByLabel("test 2")
-	gossipClassifiers2 := service.FindClassifiersByGossip(gossip2)
-	go NewGossipRadarWorker(gossip2, gossipClassifiers2, events)
+	var service GossipService = &DummyGossipService{}
+	for _, gossip := range service.FindAllGossip() {
+		gossipClassifiers := service.FindClassifiersByGossip(gossip)
+		go NewGossipRadarWorker(gossip, gossipClassifiers, events)
+	}
 
 	http.Handle("/events", websocket.Handler(func(ws *websocket.Conn) {
 		for msg := range events {
@@ -52,7 +50,11 @@ func NewGossipRadarWorker(gossip *Gossip, gossipClassifiers []*GossipClassifier,
 	reportInterval := 10 * time.Second
 	report := NewTimeEventWorker(reportInterval)
 	report.SetOnEvent(func(t time.Time, events EventGroup) {
-		msg, err := json.Marshal(events)
+		response := &map[string]interface{}{
+			"gossip": gossip.Label,
+			"events": events,
+		}
+		msg, err := json.Marshal(response)
 		if err != nil {
 			log.Println(err)
 			return

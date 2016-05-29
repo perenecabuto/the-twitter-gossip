@@ -64,17 +64,23 @@ var MultLineChartBox = React.createClass({
         if (this.props.topValue) {
             chartSeries.push({field: "top", name: "", color: "transparent"});
         }
+
         MessageManager.onMessage(function(message) {
+            console.log(message);
+            if (message.gossip !== undefined && message.gossip !== this.props.name) {
+                return;
+            }
+
             var item = {key: 'key', index: new Date()};
             if (this.props.topValue) {
                 item.top = this.props.topValue;
             }
 
-            for (var key in message) {
+            for (var key in message.events) {
                 var alreadyInChart = false;
                 for (var i in chartSeries) {
                     alreadyInChart = alreadyInChart || chartSeries[i].field == key;
-                    item[key] = message[key];
+                    item[key] = message.events[key];
                 }
                 if (!alreadyInChart) {
                    chartSeries.push({field: key, name: key, color: this.getRandomColor()});
@@ -95,7 +101,7 @@ var MultLineChartBox = React.createClass({
     render: function() {
         return (
         <div className="panel panel-default">
-            <div className="panel-heading">Realtime Chart</div>
+            <div className="panel-heading">Gossip: {this.props.name}</div>
             <div className="panel-body" ref={(ref) => this._el = ref}>no data</div>
             <div className="panel-footer">
             </div>
@@ -106,13 +112,34 @@ var MultLineChartBox = React.createClass({
 
 
 var App = React.createClass({
+    getInitialState: function() {
+        return {
+            gossips: {}
+        };
+    },
+    componentDidMount: function() {
+        MessageManager.onMessage(function(message) {
+            if (this.state.gossips[message.gossip] === undefined) {
+                this.state.gossips[message.gossip] = true;
+                ReactDOM.render(
+                    <div>
+                    {Object.keys(this.state.gossips).map(function(label) {
+                        return (
+                        <div className="pull-left col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                            <MultLineChartBox name={label} />
+                        </div>)
+                    })}
+                    </div>,
+                    this._el)
+            }
+        }.bind(this));
+
+    },
     render: function() {
         return (
         <div className="container">
             <h1 style={{paddingLeft: "12px"}}>Dashboard</h1>
-            <div className="pull-left col-xs-12 col-sm-6 col-md-6 col-lg-6">
-                <MultLineChartBox name="gossip" topic="mydome/humidity/value" />
-            </div>
+            <div ref={(ref) => this._el = ref}>Loading...</div>
         </div>
         );
     }
