@@ -49,52 +49,47 @@
 	var React = __webpack_require__(1);
 	var ReactDOM = __webpack_require__(38);
 	var mqtt = __webpack_require__(168);
-	var LineChart = __webpack_require__(261).LineChart;
 	var AreaChart = __webpack_require__(261).AreaChart;
 
-	var MessageManager = {
-	    client: mqtt.connect('mqtt://broker.mqttdashboard.com:8000'),
-	    subscriptions: {},
-	    subscribe: function subscribe(subscriptionTopic, callback) {
-	        if (!this.subscriptions[subscriptionTopic]) {
-	            console.log("subscribe: " + subscriptionTopic);
-	            this.client.subscribe(subscriptionTopic);
-	            this.subscriptions[subscriptionTopic] = true;
-	        }
-	        this.client.on('message', function (topic, message) {
-	            if (subscriptionTopic == topic) {
-	                callback(message.toString());
-	            }
-	        });
-	    }
-	};
+	var MessageManager = function () {
+	    var webSocket = new WebSocket("ws://localhost:8000/events");
+	    var listeners = [];
 
-	var LineChartBox = React.createClass({
-	    displayName: 'LineChartBox',
+	    webSocket.onopen = function (event) {
+	        console.log("open", event);
+	    };
+
+	    webSocket.onmessage = function (event) {
+	        var data = JSON.parse(event.data);
+	        for (var i in listeners) {
+	            listeners[i](data);
+	        }
+	    };
+
+	    return {
+	        onMessage: function onMessage(callback) {
+	            listeners.push(callback);
+	        }
+	    };
+	}();
+
+	var MultLineChartBox = React.createClass({
+	    displayName: 'MultLineChartBox',
 
 	    getInitialState: function getInitialState() {
-	        var maxEvents = 30;
-	        var data = [];
-	        for (var i = maxEvents; i > 0; i--) {
-	            var date = new Date(new Date().setSeconds(i * 5 * -1));
-	            data.push({ key: this.props.name, value: 0, index: date, top: this.props.maxValue });
-	        }
 	        return {
-	            className: "panel panel-warning",
-	            maxEvents: maxEvents,
-	            data: data
+	            maxItems: 20,
+	            chartSeries: [],
+	            data: []
 	        };
 	    },
-	    chartSeries: function chartSeries() {
-	        return [{
-	            field: "value",
-	            color: "rgba(76, 175, 80, 0.9)",
-	            name: this.props.name
-	        }, {
-	            field: "top",
-	            color: "transparent",
-	            name: "Top value: " + this.props.maxValue
-	        }];
+	    getRandomColor: function getRandomColor() {
+	        var letters = '0123456789ABCDEF'.split('');
+	        var color = '#';
+	        for (var i = 0; i < 6; i++) {
+	            color += letters[Math.floor(Math.random() * 16)];
+	        }
+	        return color;
 	    },
 	    renderChart: function renderChart() {
 	        setTimeout(function () {
@@ -103,7 +98,7 @@
 	                height: 200,
 	                xScale: "time",
 	                data: this.state.data,
-	                chartSeries: this.chartSeries(),
+	                chartSeries: this.state.chartSeries,
 	                x: function x(d) {
 	                    return d.index;
 	                }
@@ -111,85 +106,53 @@
 	        }.bind(this));
 	    },
 	    componentDidMount: function componentDidMount() {
-	        MessageManager.subscribe(this.props.topic, function (message) {
-	            var data = this.state.data || [];
-	            data.shift();
-	            data.push({
-	                top: this.props.maxValue,
-	                key: this.props.name,
-	                value: parseInt(message),
-	                index: new Date()
-	            });
+	        var chartSeries = this.state.chartSeries;
+	        if (this.props.topValue) {
+	            chartSeries.push({ field: "top", name: "", color: "transparent" });
+	        }
+	        MessageManager.onMessage(function (message) {
+	            var item = { key: this.props.name, index: new Date() };
+	            if (this.props.topValue) {
+	                item.top = this.props.topValue;
+	            }
 
-	            this.setState({ data: data, className: "panel panel-default" });
+	            for (var key in message) {
+	                var alreadyInChart = false;
+	                for (var i in chartSeries) {
+	                    alreadyInChart = alreadyInChart || chartSeries[i].field == key;
+	                    item[key] = message[key];
+	                }
+	                if (!alreadyInChart) {
+	                    chartSeries.push({ field: key, name: key, color: this.getRandomColor() });
+	                }
+	            }
+
+	            var data = this.state.data || [];
+	            console.log(data.length, this.state.maxItems);
+	            if (data.length == this.state.maxItems) {
+	                data.shift();
+	            }
+	            data.push(item);
+
+	            this.setState({ data: data, chartSeries: chartSeries });
 	            this.renderChart.call(this);
 	        }.bind(this));
 	    },
 	    render: function render() {
 	        var _this = this;
 
-	        var lastEvent = this.state.data[this.state.data.length - 1];
 	        return React.createElement(
 	            'div',
-	            { className: this.state.className },
+	            { className: 'panel panel-primariy' },
 	            React.createElement(
 	                'div',
 	                { className: 'panel-heading' },
-	                this.props.name,
-	                ' LineChart'
+	                'Realtime Chart'
 	            ),
 	            React.createElement('div', { className: 'panel-body', ref: function ref(_ref) {
 	                    return _this._el = _ref;
 	                }, style: { marginLeft: "-10%" } }),
-	            React.createElement(
-	                'div',
-	                { className: 'panel-footer' },
-	                'Last value ',
-	                React.createElement(
-	                    'b',
-	                    null,
-	                    lastEvent.value
-	                ),
-	                ' at ',
-	                React.createElement(
-	                    'b',
-	                    null,
-	                    lastEvent.index.toString()
-	                )
-	            )
-	        );
-	    }
-	});
-
-	var MessageBox = React.createClass({
-	    displayName: 'MessageBox',
-
-	    getInitialState: function getInitialState() {
-	        return {
-	            className: "panel panel-warning",
-	            message: "--"
-	        };
-	    },
-	    componentDidMount: function componentDidMount() {
-	        MessageManager.subscribe(this.props.topic, function (message) {
-	            this.setState({ message: message, className: "panel panel-default" });
-	        }.bind(this));
-	    },
-	    render: function render() {
-	        return React.createElement(
-	            'div',
-	            { className: this.state.className },
-	            React.createElement(
-	                'div',
-	                { className: 'panel-heading' },
-	                this.props.name,
-	                ' Message'
-	            ),
-	            React.createElement(
-	                'div',
-	                { className: 'panel-body' },
-	                this.state.message
-	            )
+	            React.createElement('div', { className: 'panel-footer' })
 	        );
 	    }
 	});
@@ -208,20 +171,8 @@
 	            ),
 	            React.createElement(
 	                'div',
-	                { className: 'pull-left col-xs-12 col-sm-4 col-md-4 col-lg-2' },
-	                React.createElement(MessageBox, { name: 'Text', topic: 'mydome/text/value' }),
-	                React.createElement(MessageBox, { name: 'Humidity', topic: 'mydome/humidity/value' }),
-	                React.createElement(MessageBox, { name: 'Gas', topic: 'mydome/gas/value' })
-	            ),
-	            React.createElement(
-	                'div',
-	                { className: 'pull-left col-xs-12 col-sm-8 col-md-8 col-lg-5' },
-	                React.createElement(LineChartBox, { name: 'Humidity', maxValue: '100', topic: 'mydome/humidity/value' })
-	            ),
-	            React.createElement(
-	                'div',
-	                { className: 'pull-left col-xs-12 col-sm-8 col-md-8 col-lg-5' },
-	                React.createElement(LineChartBox, { name: 'Temp', maxValue: '60', topic: 'mydome/temp/value' })
+	                { className: 'pull-left col-xs-12 col-sm-8 col-md-8 col-lg-8' },
+	                React.createElement(MultLineChartBox, { name: 'gossip', topic: 'mydome/humidity/value' })
 	            )
 	        );
 	    }

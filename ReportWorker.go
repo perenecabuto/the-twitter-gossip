@@ -5,18 +5,37 @@ import (
 	"time"
 )
 
-type ReportWorker struct {
-	events map[string]int
+type EventGroup map[string]int
+
+func (eg EventGroup) Clone() EventGroup {
+	evcopy := EventGroup{}
+	for k, v := range eg {
+		evcopy[k] = v
+	}
+	return evcopy
 }
 
-func NewReportWorker() *ReportWorker {
-	return &ReportWorker{map[string]int{}}
+type ReportWorker struct {
+	Interval    time.Duration
+	events      EventGroup
+	OnTimeEvent func(t time.Time, events EventGroup)
+}
+
+func NewReportWorker(interval time.Duration) *ReportWorker {
+	return &ReportWorker{interval, EventGroup{}, nil}
 }
 
 func (rw *ReportWorker) Start() {
-	ticker := time.NewTicker(5 * time.Second)
+	ticker := time.NewTicker(rw.Interval)
 	for t := range ticker.C {
-		fmt.Println(t, rw.events)
+		fmt.Println(t, rw.OnTimeEvent != nil)
+		if rw.OnTimeEvent != nil {
+			go rw.OnTimeEvent(t, rw.events.Clone())
+		}
+
+		for key, _ := range rw.events {
+			rw.events[key] = 0
+		}
 	}
 }
 

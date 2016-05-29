@@ -7,13 +7,9 @@ import (
 )
 
 type MessageClassifier struct {
-	label         string
+	Label         string
 	patterns      []*regexp.Regexp
-	matchCallback func(tweet *twitter.Tweet)
-}
-
-func NewMessageClassifier(label string, patterns []*regexp.Regexp, callback func(tweet *twitter.Tweet)) *MessageClassifier {
-	return &MessageClassifier{label, patterns, callback}
+	MatchCallback func(t *twitter.Tweet)
 }
 
 func (mc *MessageClassifier) Matches(message string) bool {
@@ -26,20 +22,28 @@ func (mc *MessageClassifier) Matches(message string) bool {
 }
 
 func (mc *MessageClassifier) OnMatch(tweet *twitter.Tweet) {
-	mc.matchCallback(tweet)
+	mc.MatchCallback(tweet)
 }
 
 type MessageClassifierListener struct {
-	inputChann  chan *twitter.Tweet
-	classifiers []*MessageClassifier
+	inputChann        chan *twitter.Tweet
+	classifiers       []*MessageClassifier
+	OnClassifierMatch func(label string, t *twitter.Tweet)
 }
 
 func NewMessageClassifierListener(classifiers []*MessageClassifier) *MessageClassifierListener {
-	return &MessageClassifierListener{make(chan *twitter.Tweet), classifiers}
+	listener := &MessageClassifierListener{make(chan *twitter.Tweet), []*MessageClassifier{}, nil}
+	for _, classifier := range classifiers {
+		listener.AddMessageClassifier(classifier)
+	}
+	return listener
 }
 
 func (mcl *MessageClassifierListener) AddMessageClassifier(mc *MessageClassifier) {
 	mcl.classifiers = append(mcl.classifiers, mc)
+	mc.MatchCallback = func(t *twitter.Tweet) {
+		mcl.OnClassifierMatch(mc.Label, t)
+	}
 }
 
 func (tp *MessageClassifierListener) InputChann() chan *twitter.Tweet {
