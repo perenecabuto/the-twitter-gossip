@@ -12,21 +12,43 @@ import (
 )
 
 func main() {
+	events := make(chan string, 1024)
 	service := &DummyGossipService{}
-	gossip := service.FindGossipByLabel("test")
+	gossip := service.FindGossipByLabel("test 1")
+	gossipClassifiers := service.FindClassifiersByGossip(gossip)
+	go NewGossipRadarWorker(gossip, gossipClassifiers, events)
 
+	gossip2 := service.FindGossipByLabel("test 2")
+	gossipClassifiers2 := service.FindClassifiersByGossip(gossip2)
+	go NewGossipRadarWorker(gossip2, gossipClassifiers2, events)
+
+	http.Handle("/events", websocket.Handler(func(ws *websocket.Conn) {
+		for msg := range events {
+			if _, err := ws.Write([]byte(msg)); err != nil {
+				log.Println(err)
+				return
+			}
+		}
+	}))
+
+	err := http.ListenAndServe(":8000", nil)
+	if err != nil {
+		panic("ListenAndServe: " + err.Error())
+	}
+}
+
+func NewGossipRadarWorker(gossip *Gossip, gossipClassifiers []*GossipClassifier, eventsChann chan<- string) {
+	fmt.Println("Listenning Gossip: ", gossip.Label)
 	stream := NewTwitterStream(gossip.Subjects)
 
-	//printer := NewTweetPrinter()
-	//stream.AddListener(printer)
-
-	gossipClassifiers := service.FindClassifiersByGossip(gossip)
 	classifiers := ConvertToMessageClassifiers(gossipClassifiers)
 	classifierListener := NewMessageClassifierListener(classifiers)
 	stream.AddListener(classifierListener)
 
+	//printer := NewTweetPrinter()
+	//stream.AddListener(printer)
+
 	// REPORTS
-	eventsChann := make(chan string)
 	reportInterval := 10 * time.Second
 	report := NewTimeEventWorker(reportInterval)
 	report.SetOnEvent(func(t time.Time, events EventGroup) {
@@ -46,18 +68,4 @@ func main() {
 
 	go report.Start()
 	go stream.Listen()
-
-	http.Handle("/events", websocket.Handler(func(ws *websocket.Conn) {
-		for msg := range eventsChann {
-			if _, err := ws.Write([]byte(msg)); err != nil {
-				log.Println(err)
-				return
-			}
-		}
-	}))
-
-	err := http.ListenAndServe(":8000", nil)
-	if err != nil {
-		panic("ListenAndServe: " + err.Error())
-	}
 }

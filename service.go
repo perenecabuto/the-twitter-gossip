@@ -14,10 +14,10 @@ func (dr *DummyGossipService) FindGossipByLabel(label string) *Gossip {
 
 func (dr *DummyGossipService) FindClassifiersByGossip(g *Gossip) []*GossipClassifier {
 	return []*GossipClassifier{
-		&GossipClassifier{Label: "Anything", Patterns: []string{
+		&GossipClassifier{Label: g.Label + " Anything", Patterns: []string{
 			".*",
 		}},
-		&GossipClassifier{Label: "Bad", Patterns: []string{
+		&GossipClassifier{Label: g.Label + " Bad", Patterns: []string{
 			"x",
 			"corrup",
 			"defeito",
@@ -27,7 +27,7 @@ func (dr *DummyGossipService) FindClassifiersByGossip(g *Gossip) []*GossipClassi
 			"odeio",
 			"raiva",
 		}},
-		&GossipClassifier{Label: "Good", Patterns: []string{
+		&GossipClassifier{Label: g.Label + " Good", Patterns: []string{
 			"legal",
 			"bem",
 			"indo bem",
