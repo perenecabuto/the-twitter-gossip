@@ -13,7 +13,7 @@ import (
 )
 
 func main() {
-	tracks := []string{"cartola"}
+	tracks := []string{"pt"}
 	stream := NewTwitterStream(tracks)
 
 	//printer := NewTweetPrinter()
@@ -27,6 +27,8 @@ func main() {
 	}, nil}
 
 	happinessClassifier := &MessageClassifier{"ruim", []*regexp.Regexp{
+		regexp.MustCompile("corrup"),
+		regexp.MustCompile("defeito"),
 		regexp.MustCompile("porra"),
 		regexp.MustCompile("problema"),
 		regexp.MustCompile("login"),
@@ -35,6 +37,8 @@ func main() {
 	}, nil}
 
 	problemClassifier := &MessageClassifier{"bom", []*regexp.Regexp{
+		regexp.MustCompile("legal"),
+		regexp.MustCompile("bem"),
 		regexp.MustCompile("indo bem"),
 		regexp.MustCompile("bom"),
 		regexp.MustCompile("gostei"),
