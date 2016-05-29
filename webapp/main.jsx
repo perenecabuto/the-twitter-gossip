@@ -2,6 +2,7 @@ var React = require('react');
 var ReactDOM = require('react-dom');
 var mqtt = require('mqtt');
 var AreaChart = require('react-d3-basic').AreaChart;
+var LineChart = require('react-d3-basic').LineChart;
 
 
 var MessageManager = (function() {
@@ -46,14 +47,16 @@ var MultLineChartBox = React.createClass({
     renderChart: function() {
         setTimeout(function() {
             ReactDOM.render(
-                <AreaChart
-                    width={520}
-                    height={200}
-                    xScale={"time"}
-                    data={this.state.data}
-                    chartSeries={this.state.chartSeries}
-                    x={(d) => d.index}
-                />, this._el);
+                <div style={{marginLeft: "-10%"}}>
+                    <LineChart
+                        width={520}
+                        height={200}
+                        xScale={"time"}
+                        data={this.state.data}
+                        chartSeries={this.state.chartSeries}
+                        x={(d) => d.index}
+                    />
+                </div>, this._el);
         }.bind(this));
     },
     componentDidMount: function() {
@@ -91,9 +94,9 @@ var MultLineChartBox = React.createClass({
     },
     render: function() {
         return (
-        <div className="panel panel-primariy">
+        <div className="panel panel-default">
             <div className="panel-heading">Realtime Chart</div>
-            <div className="panel-body" ref={(ref) => this._el = ref} style={{marginLeft: "-10%"}} />
+            <div className="panel-body" ref={(ref) => this._el = ref}>no data</div>
             <div className="panel-footer">
             </div>
         </div>
@@ -107,7 +110,7 @@ var App = React.createClass({
         return (
         <div className="container">
             <h1 style={{paddingLeft: "12px"}}>Dashboard</h1>
-            <div className="pull-left col-xs-12 col-sm-8 col-md-8 col-lg-8">
+            <div className="pull-left col-xs-12 col-sm-6 col-md-6 col-lg-6">
                 <MultLineChartBox name="gossip" topic="mydome/humidity/value" />
             </div>
         </div>
