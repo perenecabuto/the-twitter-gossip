@@ -16,25 +16,33 @@ func (eg EventGroup) Clone() EventGroup {
 	return evcopy
 }
 
-type ReportWorker struct {
-	Interval    time.Duration
+type TimeEventWorker struct {
+	interval    time.Duration
 	events      EventGroup
-	OnTimeEvent TimeEventCallback
 	reportChann chan string
+	onTimeEvent TimeEventCallback
 }
 
-func NewReportWorker(interval time.Duration, callback TimeEventCallback) *ReportWorker {
-	return &ReportWorker{interval, EventGroup{}, callback, make(chan string)}
+func NewTimeEventWorker(interval time.Duration) *TimeEventWorker {
+	return &TimeEventWorker{interval: interval, events: EventGroup{}, reportChann: make(chan string)}
 }
 
-func (rw *ReportWorker) Start() {
-	ticker := time.NewTicker(rw.Interval)
+func (rw *TimeEventWorker) SetOnEvent(callback TimeEventCallback) {
+	rw.onTimeEvent = callback
+}
+
+func (rw *TimeEventWorker) ReportEvent(name string) {
+	rw.reportChann <- name
+}
+
+func (rw *TimeEventWorker) Start() {
+	ticker := time.NewTicker(rw.interval)
 	for {
 		select {
 		case t := <-ticker.C:
-			fmt.Println(t, rw.OnTimeEvent != nil)
-			if rw.OnTimeEvent != nil {
-				go rw.OnTimeEvent(t, rw.events.Clone())
+			fmt.Println(t, rw.onTimeEvent != nil)
+			if rw.onTimeEvent != nil {
+				go rw.onTimeEvent(t, rw.events.Clone())
 			}
 
 			for key, _ := range rw.events {
@@ -47,11 +55,6 @@ func (rw *ReportWorker) Start() {
 			}
 
 			rw.events[name] = val + 1
-			fmt.Println("Event", name, rw.events[name])
 		}
 	}
-}
-
-func (rw *ReportWorker) ReportEvent(name string) {
-	rw.reportChann <- name
 }
