@@ -19,8 +19,18 @@ func main() {
 	//printer := NewTweetPrinter()
 	//stream.AddListener(printer)
 
+	eventsChann := make(chan string)
 	reportInterval := 10 * time.Second
-	report := NewReportWorker(reportInterval)
+	report := NewReportWorker(reportInterval, func(t time.Time, events EventGroup) {
+		msg, err := json.Marshal(events)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+
+		eventsChann <- string(msg)
+		fmt.Printf("Sent: %s\n", msg)
+	})
 
 	anythingClassifier := &MessageClassifier{"qq coisa", []*regexp.Regexp{
 		regexp.MustCompile(".*"),
@@ -57,29 +67,11 @@ func main() {
 	go stream.Listen()
 
 	http.Handle("/events", websocket.Handler(func(ws *websocket.Conn) {
-		report.OnTimeEvent = func(t time.Time, events EventGroup) {
-			msg, err := json.Marshal(events)
-			if err != nil {
+		for msg := range eventsChann {
+			if _, err := ws.Write([]byte(msg)); err != nil {
 				log.Println(err)
 				return
 			}
-
-			m, err := ws.Write([]byte(msg))
-			if err != nil {
-				log.Println(err)
-				return
-			}
-			fmt.Printf("Sent: %s\n", msg[:m])
-		}
-
-		for {
-			var msg *interface{}
-			err := websocket.JSON.Receive(ws, &msg)
-			if err != nil {
-				return
-			}
-
-			fmt.Printf("Receive: %s\n", msg)
 		}
 	}))
 

@@ -6,6 +6,7 @@ import (
 )
 
 type EventGroup map[string]int
+type TimeEventCallback func(t time.Time, events EventGroup)
 
 func (eg EventGroup) Clone() EventGroup {
 	evcopy := EventGroup{}
@@ -18,12 +19,12 @@ func (eg EventGroup) Clone() EventGroup {
 type ReportWorker struct {
 	Interval    time.Duration
 	events      EventGroup
-	OnTimeEvent func(t time.Time, events EventGroup)
+	OnTimeEvent TimeEventCallback
 	reportChann chan string
 }
 
-func NewReportWorker(interval time.Duration) *ReportWorker {
-	return &ReportWorker{interval, EventGroup{}, nil, make(chan string)}
+func NewReportWorker(interval time.Duration, callback TimeEventCallback) *ReportWorker {
+	return &ReportWorker{interval, EventGroup{}, callback, make(chan string)}
 }
 
 func (rw *ReportWorker) Start() {
