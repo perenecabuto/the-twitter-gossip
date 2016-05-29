@@ -50,6 +50,7 @@
 	var ReactDOM = __webpack_require__(38);
 	var mqtt = __webpack_require__(168);
 	var AreaChart = __webpack_require__(261).AreaChart;
+	var LineChart = __webpack_require__(261).LineChart;
 
 	var MessageManager = function () {
 	    var webSocket = new WebSocket("ws://localhost:8000/events");
@@ -93,16 +94,20 @@
 	    },
 	    renderChart: function renderChart() {
 	        setTimeout(function () {
-	            ReactDOM.render(React.createElement(AreaChart, {
-	                width: 520,
-	                height: 200,
-	                xScale: "time",
-	                data: this.state.data,
-	                chartSeries: this.state.chartSeries,
-	                x: function x(d) {
-	                    return d.index;
-	                }
-	            }), this._el);
+	            ReactDOM.render(React.createElement(
+	                'div',
+	                { style: { marginLeft: "-10%" } },
+	                React.createElement(LineChart, {
+	                    width: 520,
+	                    height: 200,
+	                    xScale: "time",
+	                    data: this.state.data,
+	                    chartSeries: this.state.chartSeries,
+	                    x: function x(d) {
+	                        return d.index;
+	                    }
+	                })
+	            ), this._el);
 	        }.bind(this));
 	    },
 	    componentDidMount: function componentDidMount() {
@@ -111,7 +116,7 @@
 	            chartSeries.push({ field: "top", name: "", color: "transparent" });
 	        }
 	        MessageManager.onMessage(function (message) {
-	            var item = { key: this.props.name, index: new Date() };
+	            var item = { key: 'key', index: new Date() };
 	            if (this.props.topValue) {
 	                item.top = this.props.topValue;
 	            }
@@ -143,15 +148,19 @@
 
 	        return React.createElement(
 	            'div',
-	            { className: 'panel panel-primariy' },
+	            { className: 'panel panel-default' },
 	            React.createElement(
 	                'div',
 	                { className: 'panel-heading' },
 	                'Realtime Chart'
 	            ),
-	            React.createElement('div', { className: 'panel-body', ref: function ref(_ref) {
-	                    return _this._el = _ref;
-	                }, style: { marginLeft: "-10%" } }),
+	            React.createElement(
+	                'div',
+	                { className: 'panel-body', ref: function ref(_ref) {
+	                        return _this._el = _ref;
+	                    } },
+	                'no data'
+	            ),
 	            React.createElement('div', { className: 'panel-footer' })
 	        );
 	    }
@@ -171,7 +180,7 @@
 	            ),
 	            React.createElement(
 	                'div',
-	                { className: 'pull-left col-xs-12 col-sm-8 col-md-8 col-lg-8' },
+	                { className: 'pull-left col-xs-12 col-sm-6 col-md-6 col-lg-6' },
 	                React.createElement(MultLineChartBox, { name: 'gossip', topic: 'mydome/humidity/value' })
 	            )
 	        );
