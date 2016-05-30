@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"log"
 	"net/http"
 
@@ -9,11 +8,13 @@ import (
 )
 
 func main() {
-	clientMessage := make(chan *GossipPayload)
-	service := &DummyGossipService{}
+	clientMessage := make(chan *GossipEventPayload)
+	//service := &DummyGossipService{}
+	service := NewMongoGossipService()
 
-	for _, gossip := range service.FindAllGossip() {
-		gossipClassifiers := service.FindClassifiersByGossip(gossip)
+	gossips, _ := service.FindAllGossip()
+	for _, gossip := range gossips {
+		gossipClassifiers, _ := service.FindClassifiersByGossip(gossip)
 		worker := NewGossipWorker(gossip, gossipClassifiers, clientMessage)
 		go worker.Start()
 		log.Println("(", gossip.Label, ")", "worker started")
@@ -21,15 +22,16 @@ func main() {
 
 	http.Handle("/events", websocket.Handler(func(ws *websocket.Conn) {
 		for payload := range clientMessage {
-			msg, _ := json.Marshal(payload)
-			log.Println("Sending ", string(msg))
-			if _, err := ws.Write([]byte(msg)); err != nil {
+			log.Println("Sending ", payload)
+			if err := websocket.JSON.Send(ws, payload); err != nil {
 				log.Println(err)
 				ws.Close()
 				return
 			}
 		}
 	}))
+
+	http.Handle("/gossip/", &GossipResourceHandler{service})
 
 	err := http.ListenAndServe(":8000", nil)
 	if err != nil {

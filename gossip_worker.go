@@ -7,7 +7,7 @@ import (
 	"github.com/dghubble/go-twitter/twitter"
 )
 
-type GossipPayload struct {
+type GossipEventPayload struct {
 	Gossip string     `json:"gossip"`
 	Events EventGroup `json:"events"`
 }
@@ -17,7 +17,7 @@ type GossipWorker struct {
 	worker *TimeEventWorker
 }
 
-func NewGossipWorker(gossip *Gossip, gossipClassifiers []*GossipClassifier, eventChann chan *GossipPayload) *GossipWorker {
+func NewGossipWorker(gossip *Gossip, gossipClassifiers []*GossipClassifier, eventChann chan *GossipEventPayload) *GossipWorker {
 	log.Println("Listenning Gossip: ", gossip.Label)
 	stream := NewTwitterStream(gossip.Subjects)
 	classifiers := ConvertMessageClassifiers(gossipClassifiers)
@@ -29,7 +29,7 @@ func NewGossipWorker(gossip *Gossip, gossipClassifiers []*GossipClassifier, even
 	worker.SetOnEvent(func(t time.Time, events EventGroup) {
 		log.Println("(", gossip.Label, ") time trigger: ", events)
 		if len(events) > 0 {
-			eventChann <- &GossipPayload{gossip.Label, events}
+			eventChann <- &GossipEventPayload{gossip.Label, events}
 		}
 	})
 

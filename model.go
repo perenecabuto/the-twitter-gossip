@@ -7,19 +7,21 @@ import (
 )
 
 type Gossip struct {
-	ID       bson.ObjectId `bson:"_id,omitempty`
+	ID       bson.ObjectId `bson:"_id,omitempty"`
 	Label    string
 	Subjects []string
 }
 
 type GossipClassifier struct {
-	ID       bson.ObjectId `bson:"_id,omitempty`
+	ID       bson.ObjectId `bson:"_id,omitempty",json:"-"`
+	GossipId bson.ObjectId
 	Label    string
 	Patterns []string
 }
 
 type GossipEvent struct {
-	ID         bson.ObjectId `bson:"_id,omitempty`
+	ID         bson.ObjectId `bson:"_id,omitempty",json:"-"`
+	GossipId   bson.ObjectId
 	Name       string
 	Value      string
 	Annotation string
