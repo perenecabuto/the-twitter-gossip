@@ -9,6 +9,13 @@ import (
 	"github.com/dghubble/oauth1"
 )
 
+var (
+	config     = oauth1.NewConfig("PtBsLxlPzwD39F1dfPsxxKfhL", "TMduA8ViNysuVaOztHk8yFGdj0VK6NWGDCrxe081bYd0QZyqYd")
+	token      = oauth1.NewToken("1018696039-nYjPFKCIB69nRoKMvUNrV5CzhJzKn0gbXEhshRe", "luYhEOT2Id0uhXcMz5a4cDcbAfhYefw4kXUvUsIQS8lZ2")
+	httpClient = config.Client(oauth1.NoContext, token)
+	client     = twitter.NewClient(httpClient)
+)
+
 type TwitterStreamListener interface {
 	InputChann() chan *twitter.Tweet
 	OnTweet(*twitter.Tweet)
@@ -21,10 +28,6 @@ type TwitterStream struct {
 }
 
 func NewTwitterStream(tracks []string) *TwitterStream {
-	config := oauth1.NewConfig("PtBsLxlPzwD39F1dfPsxxKfhL", "TMduA8ViNysuVaOztHk8yFGdj0VK6NWGDCrxe081bYd0QZyqYd")
-	token := oauth1.NewToken("1018696039-nYjPFKCIB69nRoKMvUNrV5CzhJzKn0gbXEhshRe", "luYhEOT2Id0uhXcMz5a4cDcbAfhYefw4kXUvUsIQS8lZ2")
-	httpClient := config.Client(oauth1.NoContext, token)
-	client := twitter.NewClient(httpClient)
 	params := &twitter.StreamFilterParams{
 		Track:         tracks,
 		StallWarnings: twitter.Bool(true),

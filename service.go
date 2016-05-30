@@ -10,11 +10,10 @@ type DummyGossipService struct{}
 
 func (s *DummyGossipService) FindAllGossip() []*Gossip {
 	list := []*Gossip{}
-	list = append(list, s.FindGossipByLabel("morte"))
-	list = append(list, s.FindGossipByLabel("fofoca"))
-	list = append(list, s.FindGossipByLabel("problema"))
-	list = append(list, s.FindGossipByLabel("buceta"))
 	list = append(list, s.FindGossipByLabel("cu"))
+	list = append(list, s.FindGossipByLabel("cartola"))
+	list = append(list, s.FindGossipByLabel("problema"))
+	list = append(list, s.FindGossipByLabel("fofoca"))
 	return list
 }
 

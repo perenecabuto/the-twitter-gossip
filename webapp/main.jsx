@@ -6,19 +6,31 @@ var LineChart = require('react-d3-basic').LineChart;
 
 
 var MessageManager = (function() {
-    var webSocket = new WebSocket("ws://localhost:8000/events");
+    var webSocket;
     var listeners = [];
 
-    webSocket.onopen = function(event) {
-        console.log("open", event);
-    };
+    function connectWebsocket() {
+        console.log("connect webSocket");
+        webSocket = new WebSocket("ws://localhost:8000/events");
+        webSocket.onopen = function(event) {
+            console.log("open", event);
+        };
 
-    webSocket.onmessage = function(event) {
-        var data = JSON.parse(event.data);
-        for (var i in listeners) {
-            listeners[i](data);
+        webSocket.onclose = function() {
+            console.log("connection closed");
+            setTimeout(connectWebsocket, 1000);
         }
-    };
+
+        webSocket.onmessage = function(event) {
+            console.log("onmessage");
+            var data = JSON.parse(event.data);
+            for (var i in listeners) {
+                listeners[i](data);
+            }
+        };
+    }
+
+    connectWebsocket();
 
     return {
         onMessage: function(callback) {
