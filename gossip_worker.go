@@ -20,8 +20,7 @@ type GossipWorker struct {
 func NewGossipWorker(gossip *Gossip, gossipClassifiers []*GossipClassifier, eventChann chan *GossipPayload) *GossipWorker {
 	log.Println("Listenning Gossip: ", gossip.Label)
 	stream := NewTwitterStream(gossip.Subjects)
-
-	classifiers := ConvertToMessageClassifiers(gossipClassifiers)
+	classifiers := ConvertMessageClassifiers(gossipClassifiers)
 	classifierListener := NewMessageClassifierListener(classifiers)
 	stream.AddListener(classifierListener)
 
@@ -35,7 +34,6 @@ func NewGossipWorker(gossip *Gossip, gossipClassifiers []*GossipClassifier, even
 	})
 
 	classifierListener.SetOnMatch(func(label string, t *twitter.Tweet) {
-
 		go worker.ReportEvent(label)
 	})
 
@@ -45,4 +43,13 @@ func NewGossipWorker(gossip *Gossip, gossipClassifiers []*GossipClassifier, even
 func (gw *GossipWorker) Start() {
 	go gw.stream.Listen()
 	gw.worker.Start()
+}
+
+func ConvertMessageClassifiers(gclassifiers []*GossipClassifier) []*MessageClassifier {
+	classifiers := []*MessageClassifier{}
+	for _, gclassifier := range gclassifiers {
+		newClassifier := NewMessageClassifier(gclassifier.Label, gclassifier.Patterns)
+		classifiers = append(classifiers, newClassifier)
+	}
+	return classifiers
 }

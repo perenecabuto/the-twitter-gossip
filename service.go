@@ -51,12 +51,3 @@ func (s *DummyGossipService) FindClassifiersByGossip(g *Gossip) []*GossipClassif
 		}},
 	}
 }
-
-func ConvertToMessageClassifiers(gclassifiers []*GossipClassifier) []*MessageClassifier {
-	classifiers := []*MessageClassifier{}
-	for _, gclassifier := range gclassifiers {
-		newClassifier := NewMessageClassifier(gclassifier.Label, gclassifier.Patterns)
-		classifiers = append(classifiers, newClassifier)
-	}
-	return classifiers
-}
