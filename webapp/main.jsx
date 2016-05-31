@@ -3,7 +3,9 @@ var ReactDOM = require('react-dom');
 var mqtt = require('mqtt');
 var AreaChart = require('react-d3-basic').AreaChart;
 var LineChart = require('react-d3-basic').LineChart;
+var ajar = require('ajar');
 
+var serviceURL = window.location.hostname + ":8000";
 
 var MessageManager = (function() {
     var webSocket;
@@ -11,7 +13,7 @@ var MessageManager = (function() {
 
     function connectWebsocket() {
         console.log("connect webSocket");
-        webSocket = new WebSocket("ws://" + window.location.hostname + ":8000/events");
+        webSocket = new WebSocket("ws://" + serviceURL + "/events");
         webSocket.onopen = function(event) {
             console.log("open", event);
         };
@@ -39,6 +41,72 @@ var MessageManager = (function() {
     };
 })();
 
+var AddGossip = React.createClass({
+    getInitialState: function() {
+        return {
+            label: this.props.label || "",
+            subjects: "",
+            classifiers: ""
+        }
+    },
+    getClassifiersPayload: function() {
+        var classifiers = {};
+        var currentLabel = "";
+        this.state.classifiers.split("\n").map(function(line) {
+            line = line.trim();
+            if (line[0] == ':') {
+                currentLabel = line.substring(1);
+                classifiers[currentLabel] = [];
+            } else if (classifiers[currentLabel]) {
+                classifiers[currentLabel].push(line);
+            }
+        });
+
+        return classifiers;
+    },
+    handleSubmit: function(e) {
+        e.preventDefault();
+        if (this.state.label.trim() == "") {
+            alert("label is empty");
+            return;
+        }
+        if (this.state.subjects.trim() == "") {
+            alert("subjects is empty");
+            return;
+        }
+        var payload = {
+            label: this.state.label,
+            subjects: this.state.subjects.split(","),
+            classifiers: this.getClassifiersPayload()
+        };
+        ajar.post(location.protocol + "//" + serviceURL + "/gossip/", payload).then(console.log);
+    },
+    render: function() {
+        return (
+        <fieldset>
+            <legend>{this.state.label}</legend>
+            <form onSubmit={this.handleSubmit}>
+                <div className="form-group">
+                <label>Label</label><br />
+                <input className="form-control" onChange={(e) => this.setState({'label': e.target.value}) } />
+                </div>
+
+                <div className="form-group">
+                <label>Subjects (comma separated)</label><br />
+                <input className="form-control" onChange={(e) => this.setState({'subjects': e.target.value}) } />
+                </div>
+
+                <div className="form-group">
+                <label>Classifiers (<a>description</a>)</label><br />
+                <textarea className="form-control" onChange={(e) => this.setState({'classifiers': e.target.value}) } />
+                </div>
+
+                <button type="submit" className="btn btn-default">Save</button>
+            </form>
+        </fieldset>
+        );
+    }
+});
 
 var MultLineChartBox = React.createClass({
     getInitialState: function() {
@@ -110,12 +178,7 @@ var MultLineChartBox = React.createClass({
     },
     render: function() {
         return (
-        <div className="panel panel-default">
-            <div className="panel-heading">Gossip: {this.props.name}</div>
-            <div className="panel-body" ref={(ref) => this._el = ref}>no data</div>
-            <div className="panel-footer">
-            </div>
-        </div>
+        <div className="panel-body" ref={(ref) => this._el = ref}>no data</div>
         );
     }
 });
@@ -136,7 +199,10 @@ var App = React.createClass({
                     {Object.keys(this.state.gossips).map(function(label) {
                         return (
                         <div className="pull-left col-xs-12 col-sm-8 col-md-6 col-lg-6">
-                            <MultLineChartBox name={label} />
+                            <div className="panel panel-default">
+                                <div className="panel-heading">Gossip: {label}</div>
+                                <MultLineChartBox name={label} />
+                            </div>
                         </div>)
                     })}
                     </div>,
@@ -149,6 +215,7 @@ var App = React.createClass({
         return (
         <div className="container">
             <h1>Dashboard</h1>
+            <AddGossip />
             <div className="row" ref={(ref) => this._el = ref}>
                 <div className="col-xs-12 col-sm-12 col-md-12 col-lg-12">Loading...</div>
             </div>

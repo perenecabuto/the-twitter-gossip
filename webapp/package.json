@@ -12,7 +12,8 @@
         "react-d3-basic": "*",
         "react-d3-zoom": "*",
         "react-d3-brush": "*",
-        "body-parser": "^1.4.3"
+        "body-parser": "^1.4.3",
+        "ajar": "*"
     },
     "devDependencies": {
         "babel-core": "6.7.7",

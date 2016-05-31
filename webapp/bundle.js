@@ -51,6 +51,9 @@
 	var mqtt = __webpack_require__(168);
 	var AreaChart = __webpack_require__(261).AreaChart;
 	var LineChart = __webpack_require__(261).LineChart;
+	var ajar = __webpack_require__(491);
+
+	var serviceURL = window.location.hostname + ":8000";
 
 	var MessageManager = function () {
 	    var webSocket;
@@ -58,7 +61,7 @@
 
 	    function connectWebsocket() {
 	        console.log("connect webSocket");
-	        webSocket = new WebSocket("ws://" + window.location.hostname + ":8000/events");
+	        webSocket = new WebSocket("ws://" + serviceURL + "/events");
 	        webSocket.onopen = function (event) {
 	            console.log("open", event);
 	        };
@@ -85,6 +88,117 @@
 	        }
 	    };
 	}();
+
+	var AddGossip = React.createClass({
+	    displayName: 'AddGossip',
+
+	    getInitialState: function getInitialState() {
+	        return {
+	            label: this.props.label || "",
+	            subjects: "",
+	            classifiers: ""
+	        };
+	    },
+	    getClassifiersPayload: function getClassifiersPayload() {
+	        var classifiers = {};
+	        var currentLabel = "";
+	        this.state.classifiers.split("\n").map(function (line) {
+	            line = line.trim();
+	            if (line[0] == ':') {
+	                currentLabel = line.substring(1);
+	                classifiers[currentLabel] = [];
+	            } else if (classifiers[currentLabel]) {
+	                classifiers[currentLabel].push(line);
+	            }
+	        });
+
+	        return classifiers;
+	    },
+	    handleSubmit: function handleSubmit(e) {
+	        e.preventDefault();
+	        if (this.state.label.trim() == "") {
+	            alert("label is empty");
+	            return;
+	        }
+	        if (this.state.subjects.trim() == "") {
+	            alert("subjects is empty");
+	            return;
+	        }
+	        var payload = {
+	            label: this.state.label,
+	            subjects: this.state.subjects.split(","),
+	            classifiers: this.getClassifiersPayload()
+	        };
+	        ajar.post(location.protocol + "//" + serviceURL + "/gossip/", payload).then(console.log);
+	    },
+	    render: function render() {
+	        var _this = this;
+
+	        return React.createElement(
+	            'fieldset',
+	            null,
+	            React.createElement(
+	                'legend',
+	                null,
+	                this.state.label
+	            ),
+	            React.createElement(
+	                'form',
+	                { onSubmit: this.handleSubmit },
+	                React.createElement(
+	                    'div',
+	                    { className: 'form-group' },
+	                    React.createElement(
+	                        'label',
+	                        null,
+	                        'Label'
+	                    ),
+	                    React.createElement('br', null),
+	                    React.createElement('input', { className: 'form-control', onChange: function onChange(e) {
+	                            return _this.setState({ 'label': e.target.value });
+	                        } })
+	                ),
+	                React.createElement(
+	                    'div',
+	                    { className: 'form-group' },
+	                    React.createElement(
+	                        'label',
+	                        null,
+	                        'Subjects (comma separated)'
+	                    ),
+	                    React.createElement('br', null),
+	                    React.createElement('input', { className: 'form-control', onChange: function onChange(e) {
+	                            return _this.setState({ 'subjects': e.target.value });
+	                        } })
+	                ),
+	                React.createElement(
+	                    'div',
+	                    { className: 'form-group' },
+	                    React.createElement(
+	                        'label',
+	                        null,
+	                        'Classifiers (',
+	                        React.createElement(
+	                            'a',
+	                            null,
+	                            'description'
+	                        ),
+	                        ')'
+	                    ),
+	                    React.createElement('br', null),
+	                    React.createElement('textarea', { className: 'form-control', onChange: function onChange(e) {
+	                            return _this.setState({ 'classifiers': e.target.value });
+	                        } })
+	                ),
+	                React.createElement(
+	                    'button',
+	                    { type: 'submit', className: 'btn btn-default' },
+	                    'Save'
+	                )
+	            )
+	        );
+	    }
+	});
 
 	var MultLineChartBox = React.createClass({
 	    displayName: 'MultLineChartBox',
@@ -160,25 +274,14 @@
 	        }.bind(this));
 	    },
 	    render: function render() {
-	        var _this = this;
+	        var _this2 = this;
 
 	        return React.createElement(
 	            'div',
-	            { className: 'panel panel-default' },
-	            React.createElement(
-	                'div',
-	                { className: 'panel-heading' },
-	                'Gossip: ',
-	                this.props.name
-	            ),
-	            React.createElement(
-	                'div',
-	                { className: 'panel-body', ref: function ref(_ref) {
-	                        return _this._el = _ref;
-	                    } },
-	                'no data'
-	            ),
-	            React.createElement('div', { className: 'panel-footer' })
+	            { className: 'panel-body', ref: function ref(_ref) {
+	                    return _this2._el = _ref;
+	                } },
+	            'no data'
 	        );
 	    }
 	});
@@ -202,7 +305,17 @@
 	                        return React.createElement(
 	                            'div',
 	                            { className: 'pull-left col-xs-12 col-sm-8 col-md-6 col-lg-6' },
-	                            React.createElement(MultLineChartBox, { name: label })
+	                            React.createElement(
+	                                'div',
+	                                { className: 'panel panel-default' },
+	                                React.createElement(
+	                                    'div',
+	                                    { className: 'panel-heading' },
+	                                    'Gossip: ',
+	                                    label
+	                                ),
+	                                React.createElement(MultLineChartBox, { name: label })
+	                            )
 	                        );
 	                    })
 	                ), this._el);
@@ -210,7 +323,7 @@
 	        }.bind(this));
 	    },
 	    render: function render() {
-	        var _this2 = this;
+	        var _this3 = this;
 
 	        return React.createElement(
 	            'div',
@@ -220,10 +333,11 @@
 	                null,
 	                'Dashboard'
 	            ),
+	            React.createElement(AddGossip, null),
 	            React.createElement(
 	                'div',
 	                { className: 'row', ref: function ref(_ref2) {
-	                        return _this2._el = _ref2;
+	                        return _this3._el = _ref2;
 	                    } },
 	                React.createElement(
 	                    'div',
@@ -81718,6 +81832,53 @@
 	};
 	exports.default = PieChart;
 	module.exports = exports['default'];
+
+/***/ },
+/* 491 */
+/***/ function(module, exports) {
+
+	"use strict"
+
+	function querystring(params) {
+	    var qstr = []
+	    for (var key in params)
+	        qstr.push(encodeURIComponent(key) + '=' + encodeURIComponent(params[key]))
+
+	    return qstr.join('&')
+	}
+
+	function request(method, url, gdata, pdata) {
+	    return new Promise((resolve, reject) => {
+	        if (gdata)
+	            url += '?' + querystring(gdata)
+
+	        var req = new XMLHttpRequest()
+
+	        req.open(method, url)
+	        if (pdata)
+	            req.setRequestHeader('Content-Type', 'application/json')
+
+	        req.addEventListener('load', (evt) => {
+	            if (req.status >= 200 && req.status < 300) {
+	                if (/application\/json/i.test(req.getResponseHeader('Content-Type')))
+	                    resolve(JSON.parse(req.responseText))
+
+	                resolve(req)
+	            } else {
+	                reject(req)
+	            }
+	        })
+	        req.addEventListener('error', () => reject(req))
+
+	        req.send(JSON.stringify(pdata))
+	    })
+	}
+
+	exports.get = (url, data) => request('GET', url, data, null)
+	exports.post = (url, data) => request('POST', url, null, data)
+	exports.put = (url, data) => request('PUT', url, null, data)
+	exports.delete = (url, data) => request('DELETE', url, data, null)
+
 
 /***/ }
 /******/ ]);

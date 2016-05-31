@@ -2,16 +2,24 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
 	"log"
 	"net/http"
 	"strings"
 )
 
 type GossipPayload struct {
-	Gossip      string   `json:"gossip"`
-	Subjects    []string `json:"subjects"`
-	Classifiers string   `json:"classifiers"`
+	Gossip      string              `json:"gossip"`
+	Subjects    []string            `json:"subjects"`
+	Classifiers map[string][]string `json:"classifiers"`
+}
+
+func (p *GossipPayload) ToModel() (*Gossip, []*GossipClassifier) {
+	gossip := &Gossip{Label: p.Gossip, Subjects: p.Subjects}
+	classifiers := []*GossipClassifier{}
+	for label, patterns := range p.Classifiers {
+		classifiers = append(classifiers, &GossipClassifier{Label: label, Patterns: patterns})
+	}
+	return gossip, classifiers
 }
 
 type GossipListPayload struct {
@@ -41,6 +49,7 @@ func (gah *GossipResourceHandler) List(w http.ResponseWriter, r *http.Request) {
 	payload := &GossipListPayload{[]*GossipPayload{}}
 	gossips, err := gah.service.FindAllGossip()
 	if err != nil {
+		log.Println(err)
 		http.Error(w, err.Error(), 500)
 		return
 	}
@@ -59,6 +68,7 @@ func (gah *GossipResourceHandler) Get(label string, w http.ResponseWriter, r *ht
 		return
 	}
 	if err != nil {
+		log.Println(err)
 		http.Error(w, err.Error(), 500)
 		return
 	}
@@ -70,52 +80,18 @@ func (gah *GossipResourceHandler) Get(label string, w http.ResponseWriter, r *ht
 func (gah *GossipResourceHandler) Create(w http.ResponseWriter, r *http.Request) {
 	payload := &GossipPayload{}
 	if err := json.NewDecoder(r.Body).Decode(payload); err != nil {
-		http.Error(w, err.Error(), 500)
-		return
-	}
-	classfiers, err := gah.deserializeClassifiers(payload.Classifiers)
-	if err != nil {
+		log.Println(err)
 		http.Error(w, err.Error(), 500)
 		return
 	}
 
-	gossip := &Gossip{Label: payload.Gossip, Subjects: payload.Subjects}
-	err = gah.service.Save(gossip, classfiers)
-	if err != nil {
+	log.Println("POST", payload)
+	gossip, classifiers := payload.ToModel()
+	if err := gah.service.Save(gossip, classifiers); err != nil {
+		log.Println(err)
 		http.Error(w, err.Error(), 500)
 		return
 	}
-}
-
-func (gah *GossipResourceHandler) deserializeClassifiers(cString string) ([]*GossipClassifier, error) {
-	currentLabel := ""
-	patterns := []string{}
-	result := []*GossipClassifier{}
-	appendClassifier := func(label string, patterns []string) {
-		if len(patterns) > 0 {
-			result = append(result, &GossipClassifier{Label: label, Patterns: patterns})
-		}
-	}
-
-	for _, line := range strings.Split(cString, "\n") {
-		if line[0] == ':' {
-			if len(currentLabel) > 0 {
-				appendClassifier(currentLabel, patterns)
-				patterns = []string{}
-			}
-			label := line[1:]
-			if label != currentLabel {
-				currentLabel = label
-			}
-		} else if len(currentLabel) > 0 {
-			patterns = append(patterns, line)
-		} else {
-			return nil, errors.New("Error deserializeClassifiers: Classifier without label")
-		}
-	}
-
-	appendClassifier(currentLabel, patterns)
-	return result, nil
 }
 
 func (gah *GossipResourceHandler) buildGossipPayload(g *Gossip) *GossipPayload {
@@ -124,11 +100,10 @@ func (gah *GossipResourceHandler) buildGossipPayload(g *Gossip) *GossipPayload {
 		log.Println(err)
 		return nil
 	}
-	classifiersString := ""
-	for _, c := range classifiers {
-		classifiersString += ":" + c.Label + "\n"
-		classifiersString += strings.Join(c.Patterns, "\n") + "\n"
-	}
 
-	return &GossipPayload{g.Label, g.Subjects, classifiersString}
+	cPayload := map[string][]string{}
+	for _, c := range classifiers {
+		cPayload[c.Label] = c.Patterns
+	}
+	return &GossipPayload{g.Label, g.Subjects, cPayload}
 }

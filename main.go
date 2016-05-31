@@ -28,11 +28,19 @@ func main() {
 		io.Copy(ws, ws)
 	}))
 
-	http.Handle("/gossip/", &GossipResourceHandler{service})
+	http.Handle("/gossip/", CorsMiddleware(&GossipResourceHandler{service}))
 
 	go connections.ListenBroadcasts()
 	err := http.ListenAndServe(":8000", nil)
 	if err != nil {
 		panic("ListenAndServe: " + err.Error())
 	}
+}
+
+func CorsMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Headers", "content-type")
+		next.ServeHTTP(w, r)
+	})
 }
