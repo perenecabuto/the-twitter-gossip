@@ -1,6 +1,9 @@
 package main
 
-import "time"
+import (
+	"log"
+	"time"
+)
 
 type EventGroup map[string]int
 
@@ -16,34 +19,45 @@ type TimedLabelCounter struct {
 	interval    time.Duration
 	events      EventGroup
 	reportChann chan string
+	stopChann   chan bool
 	OnTimeChann chan EventGroup
 }
 
 func NewTimedLabelCounter(interval time.Duration) *TimedLabelCounter {
 	return &TimedLabelCounter{interval: interval, events: EventGroup{},
-		reportChann: make(chan string), OnTimeChann: make(chan EventGroup)}
+		reportChann: make(chan string), stopChann: make(chan bool),
+		OnTimeChann: make(chan EventGroup)}
 }
 
-func (rw *TimedLabelCounter) ReportEvent(name string) {
-	rw.reportChann <- name
+func (tlc *TimedLabelCounter) ReportEvent(name string) {
+	tlc.reportChann <- name
 }
 
-func (rw *TimedLabelCounter) Start() {
-	ticker := time.NewTicker(rw.interval)
+func (tlc *TimedLabelCounter) Start() {
+	ticker := time.NewTicker(tlc.interval)
 	for {
 		select {
 		case <-ticker.C:
-			rw.OnTimeChann <- rw.events.Clone()
-			for key, _ := range rw.events {
-				rw.events[key] = 0
+			tlc.OnTimeChann <- tlc.events.Clone()
+			for key, _ := range tlc.events {
+				tlc.events[key] = 0
 			}
-		case name := <-rw.reportChann:
-			val, ok := rw.events[name]
+		case name := <-tlc.reportChann:
+			val, ok := tlc.events[name]
 			if !ok {
 				val = 0
 			}
 
-			rw.events[name] = val + 1
+			tlc.events[name] = val + 1
+		case <-tlc.stopChann:
+			log.Println("! Stopping TimedLabelCounter")
+			tlc.stopChann <- true
+			return
 		}
 	}
+}
+
+func (tlc *TimedLabelCounter) Stop() {
+	tlc.stopChann <- true
+	<-tlc.stopChann
 }

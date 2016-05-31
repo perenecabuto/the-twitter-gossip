@@ -4,21 +4,28 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"golang.org/x/net/websocket"
 )
 
 func main() {
 	connections := NewWSConnections()
-	//service := &DummyGossipService{}
-	service := NewMongoGossipService()
+	service := &DummyGossipService{}
+	//service := NewMongoGossipService()
+	workerPool := NewGossipWorkerPool()
+
+	StopAllWorkersAtExit(workerPool)
+
+	go ConnectWSGossipWorkerPool(connections, workerPool)
 
 	gossips, _ := service.FindAllGossip()
 	for _, gossip := range gossips {
-		gossipClassifiers, _ := service.FindClassifiersByGossip(gossip)
-		worker := NewGossipWorker(gossip, gossipClassifiers, connections.BroadcastChann)
-		go worker.Start()
-		log.Println("(", gossip.Label, ")", "worker started")
+		classifiers, _ := service.FindClassifiersByGossip(gossip)
+		workerPool.BuildWorker(gossip.Label, gossip, classifiers)
+		go workerPool.StartWorker(gossip.Label)
 	}
 
 	http.Handle("/events", websocket.Handler(func(ws *websocket.Conn) {
@@ -43,4 +50,21 @@ func CorsMiddleware(next http.Handler) http.Handler {
 		w.Header().Set("Access-Control-Allow-Headers", "content-type")
 		next.ServeHTTP(w, r)
 	})
+}
+
+func ConnectWSGossipWorkerPool(c *WSConnections, p *GossipWorkerPool) {
+	for msg := range p.EventChann {
+		c.BroadcastChann <- interface{}(msg)
+	}
+}
+
+func StopAllWorkersAtExit(p *GossipWorkerPool) {
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	signal.Notify(c, syscall.SIGTERM)
+	go func() {
+		<-c
+		p.StopAll()
+		os.Exit(1)
+	}()
 }

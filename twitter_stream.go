@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"log"
-	"reflect"
 
 	"github.com/dghubble/go-twitter/twitter"
 	"github.com/dghubble/oauth1"
@@ -22,8 +21,9 @@ type TwitterStreamListener interface {
 
 type TwitterStream struct {
 	tracks    []string
-	listeners []TwitterStreamListener
 	stream    *twitter.Stream
+	listeners []TwitterStreamListener
+	stopChann chan bool
 }
 
 func NewTwitterStream(tracks []string) *TwitterStream {
@@ -36,24 +36,36 @@ func NewTwitterStream(tracks []string) *TwitterStream {
 		log.Panic("Error!!!", err)
 	}
 
-	return &TwitterStream{tracks: tracks, stream: stream, listeners: []TwitterStreamListener{}}
+	return &TwitterStream{tracks, stream, []TwitterStreamListener{}, make(chan bool)}
+}
+
+func (ts *TwitterStream) AddListener(listener TwitterStreamListener) {
+	ts.listeners = append(ts.listeners, listener)
 }
 
 func (ts *TwitterStream) Listen() {
 	fmt.Println("Waiting for messages about ", ts.tracks)
-	for message := range ts.stream.Messages {
-		tweet, ok := message.(*twitter.Tweet)
-		if ok {
-			for _, listener := range ts.listeners {
-				go func(l TwitterStreamListener) {
-					go l.OnTweet(tweet)
-				}(listener)
+	for {
+		select {
+		case message := <-ts.stream.Messages:
+			tweet, ok := message.(*twitter.Tweet)
+			if ok {
+				for _, listener := range ts.listeners {
+					go func(l TwitterStreamListener) {
+						go l.OnTweet(tweet)
+					}(listener)
+				}
 			}
+		case <-ts.stopChann:
+			log.Println("! Stopping TwitterStream: ", ts.tracks)
+			ts.stream.Stop()
+			ts.stopChann <- true
+			return
 		}
 	}
 }
 
-func (ts *TwitterStream) AddListener(listener TwitterStreamListener) {
-	fmt.Println("Add ", reflect.TypeOf(listener))
-	ts.listeners = append(ts.listeners, listener)
+func (ts *TwitterStream) Stop() {
+	ts.stopChann <- true
+	<-ts.stopChann
 }

@@ -93,25 +93,26 @@ func (s *MongoGossipService) Save(g *Gossip, classifiers []*GossipClassifier) er
 // DUMMY
 type DummyGossipService struct{}
 
-func (s *DummyGossipService) FindAllGossip() []*Gossip {
-	list := []*Gossip{}
-	list = append(list, s.FindGossipByLabel("cu"))
-	list = append(list, s.FindGossipByLabel("cartola"))
-	list = append(list, s.FindGossipByLabel("problema"))
-	list = append(list, s.FindGossipByLabel("fofoca"))
-	return list
+func (s *DummyGossipService) FindAllGossip() ([]*Gossip, error) {
+	result := []*Gossip{}
+	labels := []string{"cartola", "example", "problema", "fofoca"}
+	for _, l := range labels {
+		g, _ := s.FindGossipByLabel(l)
+		result = append(result, g)
+	}
+	return result, nil
 }
 
-func (s *DummyGossipService) FindGossipByLabel(label string) *Gossip {
+func (s *DummyGossipService) FindGossipByLabel(label string) (*Gossip, error) {
 	gossip := &Gossip{
 		Label:    label,
 		Subjects: []string{label},
 	}
 
-	return gossip
+	return gossip, nil
 }
 
-func (s *DummyGossipService) FindClassifiersByGossip(g *Gossip) []*GossipClassifier {
+func (s *DummyGossipService) FindClassifiersByGossip(g *Gossip) ([]*GossipClassifier, error) {
 	return []*GossipClassifier{
 		&GossipClassifier{Label: "Anything", Patterns: []string{
 			".*",
@@ -134,9 +135,10 @@ func (s *DummyGossipService) FindClassifiersByGossip(g *Gossip) []*GossipClassif
 			"gostei",
 			"foda",
 		}},
-	}
+	}, nil
 }
 
-func (s *DummyGossipService) Save(g *Gossip, c []*GossipClassifier) {
+func (s *DummyGossipService) Save(g *Gossip, c []*GossipClassifier) error {
 	log.Printf("Save %v %+v\n", g, c)
+	return nil
 }
