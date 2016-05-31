@@ -33,6 +33,7 @@ type GossipResourceHandler struct {
 func (gah *GossipResourceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	splittedPath := strings.Split(r.URL.Path, "/")
 	gossip := strings.TrimSpace(splittedPath[len(splittedPath)-1])
+	w.Header().Set("Content-Type", "application/json")
 	if r.Method == "GET" {
 		if len(gossip) == 0 {
 			gah.List(w, r)
