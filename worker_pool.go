@@ -36,7 +36,6 @@ func (gwp GossipWorkerPool) listenTo(w *GossipWorker) {
 }
 
 func (gwp GossipWorkerPool) StopWorker(id string) {
-	log.Println("Stop worker", id)
 	if w, ok := gwp.pool[id]; ok {
 		w.Stop()
 	}
@@ -44,7 +43,7 @@ func (gwp GossipWorkerPool) StopWorker(id string) {
 
 func (gwp *GossipWorkerPool) RemoveWorker(id string) {
 	if w, ok := gwp.pool[id]; ok {
-		go w.Stop()
+		w.Stop()
 		close(w.EventChann)
 		delete(gwp.pool, id)
 	}
@@ -57,8 +56,9 @@ func (gwp GossipWorkerPool) StartAll() {
 }
 
 func (gwp GossipWorkerPool) StopAll() {
-	log.Println("Stop All (", len(gwp.pool), ")")
+	log.Println("Stop All (", len(gwp.pool), ") workers")
 	for id, _ := range gwp.pool {
+		log.Println("")
 		gwp.StopWorker(id)
 	}
 }

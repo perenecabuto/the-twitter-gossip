@@ -12,15 +12,12 @@ import (
 )
 
 func main() {
-	connections := NewWSConnections()
 	service := &DummyGossipService{}
+	connections := NewWSConnections()
 	//service := NewMongoGossipService()
 	workerPool := NewGossipWorkerPool()
 
 	StopAllWorkersAtExit(workerPool)
-
-	go ConnectWSGossipWorkerPool(connections, workerPool)
-
 	gossips, _ := service.FindAllGossip()
 	for _, gossip := range gossips {
 		classifiers, _ := service.FindClassifiersByGossip(gossip)
@@ -28,6 +25,7 @@ func main() {
 		go workerPool.StartWorker(gossip.Label)
 	}
 
+	http.Handle("/gossip/", CorsMiddleware(&GossipResourceHandler{service}))
 	http.Handle("/events", websocket.Handler(func(ws *websocket.Conn) {
 		log.Println("New WS connection")
 		defer connections.Remove(ws)
@@ -35,12 +33,20 @@ func main() {
 		io.Copy(ws, ws)
 	}))
 
-	http.Handle("/gossip/", CorsMiddleware(&GossipResourceHandler{service}))
+	BroadcastWorkerPoolEvents(workerPool, connections)
 
 	go connections.ListenBroadcasts()
 	err := http.ListenAndServe(":8000", nil)
 	if err != nil {
 		panic("ListenAndServe: " + err.Error())
+	}
+}
+
+func BroadcastWorkerPoolEvents(p *GossipWorkerPool, c *WSConnections) {
+	for msg := range p.EventChann {
+		go func() {
+			c.BroadcastChann <- interface{}(msg)
+		}()
 	}
 }
 
@@ -50,12 +56,6 @@ func CorsMiddleware(next http.Handler) http.Handler {
 		w.Header().Set("Access-Control-Allow-Headers", "content-type")
 		next.ServeHTTP(w, r)
 	})
-}
-
-func ConnectWSGossipWorkerPool(c *WSConnections, p *GossipWorkerPool) {
-	for msg := range p.EventChann {
-		c.BroadcastChann <- interface{}(msg)
-	}
 }
 
 func StopAllWorkersAtExit(p *GossipWorkerPool) {
