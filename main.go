@@ -9,21 +9,17 @@ import (
 )
 
 func main() {
-	clientMessage := make(chan *GossipEventPayload)
+	connections := NewWSConnections()
 	//service := &DummyGossipService{}
 	service := NewMongoGossipService()
 
 	gossips, _ := service.FindAllGossip()
 	for _, gossip := range gossips {
 		gossipClassifiers, _ := service.FindClassifiersByGossip(gossip)
-		worker := NewGossipWorker(gossip, gossipClassifiers, clientMessage)
+		worker := NewGossipWorker(gossip, gossipClassifiers, connections.BroadcastChann)
 		go worker.Start()
 		log.Println("(", gossip.Label, ")", "worker started")
 	}
-
-	connections := NewWSConnections()
-	go connections.BroadcastJSONFromChann(clientMessage)
-	log.Println("Listening for WS connections")
 
 	http.Handle("/events", websocket.Handler(func(ws *websocket.Conn) {
 		log.Println("New WS connection")
@@ -34,6 +30,7 @@ func main() {
 
 	http.Handle("/gossip/", &GossipResourceHandler{service})
 
+	go connections.ListenBroadcasts()
 	err := http.ListenAndServe(":8000", nil)
 	if err != nil {
 		panic("ListenAndServe: " + err.Error())

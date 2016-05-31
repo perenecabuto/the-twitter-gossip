@@ -7,11 +7,12 @@ import (
 )
 
 type WSConnections struct {
-	connections map[*websocket.Conn]bool
+	connections    map[*websocket.Conn]bool
+	BroadcastChann chan interface{}
 }
 
 func NewWSConnections() *WSConnections {
-	return &WSConnections{make(map[*websocket.Conn]bool)}
+	return &WSConnections{make(map[*websocket.Conn]bool), make(chan interface{})}
 }
 
 func (wsc *WSConnections) Add(ws *websocket.Conn) {
@@ -23,7 +24,7 @@ func (wsc *WSConnections) Remove(ws *websocket.Conn) {
 	ws.Close()
 }
 
-func (wsc *WSConnections) BroadcastJSON(payload *GossipEventPayload) {
+func (wsc *WSConnections) BroadcastJSON(payload interface{}) {
 	log.Println("BroadcastJSON to", len(wsc.connections), "connections")
 	for ws := range wsc.connections {
 		if err := websocket.JSON.Send(ws, payload); err != nil {
@@ -33,8 +34,8 @@ func (wsc *WSConnections) BroadcastJSON(payload *GossipEventPayload) {
 	}
 }
 
-func (wsc *WSConnections) BroadcastJSONFromChann(chann chan *GossipEventPayload) {
-	for payload := range chann {
+func (wsc *WSConnections) ListenBroadcasts() {
+	for payload := range wsc.BroadcastChann {
 		wsc.BroadcastJSON(payload)
 	}
 }

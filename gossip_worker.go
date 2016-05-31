@@ -5,6 +5,8 @@ import (
 	"time"
 )
 
+const DEFAULT_INTERVAL = 10 * time.Second
+
 type GossipEventPayload struct {
 	Gossip string     `json:"gossip"`
 	Events EventGroup `json:"events"`
@@ -15,18 +17,16 @@ type GossipWorker struct {
 	stream     *TwitterStream
 	worker     *TimedLabelCounter
 	listener   *MessageClassifierListener
-	eventChann chan *GossipEventPayload
+	eventChann chan interface{}
 }
 
-func NewGossipWorker(gossip *Gossip, gossipClassifiers []*GossipClassifier, eventChann chan *GossipEventPayload) *GossipWorker {
+func NewGossipWorker(gossip *Gossip, gossipClassifiers []*GossipClassifier, eventChann chan interface{}) *GossipWorker {
 	log.Println("Listenning Gossip: ", gossip.Label)
 	stream := NewTwitterStream(gossip.Subjects)
 	classifiers := ConvertMessageClassifiers(gossipClassifiers)
+	worker := NewTimedLabelCounter(DEFAULT_INTERVAL)
 	listener := NewMessageClassifierListener(classifiers)
 	stream.AddListener(listener)
-
-	workerInterval := 10 * time.Second
-	worker := NewTimedLabelCounter(workerInterval)
 
 	return &GossipWorker{gossip, stream, worker, listener, eventChann}
 }
