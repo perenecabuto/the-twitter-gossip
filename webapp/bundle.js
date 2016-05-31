@@ -89,8 +89,8 @@
 	    };
 	}();
 
-	var AddGossip = React.createClass({
-	    displayName: 'AddGossip',
+	var GossipForm = React.createClass({
+	    displayName: 'GossipForm',
 
 	    getInitialState: function getInitialState() {
 	        return {
@@ -98,6 +98,21 @@
 	            subjects: "",
 	            classifiers: ""
 	        };
+	    },
+	    componentDidMount: function componentDidMount() {
+	        if (this.props.gossip) {
+	            ajar.get(location.protocol + "//" + serviceURL + "/gossip/" + this.props.gossip).then(function (gossip) {
+	                console.log(gossip);
+	                this.setState({
+	                    gossip: gossip.gossip,
+	                    subjects: gossip.subjects.join(", "),
+	                    classifiers: Object.keys(gossip.classifiers).map(function (label) {
+	                        var patterns = gossip.classifiers[label];
+	                        return ":" + label + "\n" + patterns.join("\n");
+	                    }).join("\n")
+	                });
+	            }.bind(this));
+	        }
 	    },
 	    getClassifiersPayload: function getClassifiersPayload() {
 	        var classifiers = {};
@@ -116,8 +131,8 @@
 	    },
 	    handleSubmit: function handleSubmit(e) {
 	        e.preventDefault();
-	        if (this.state.label.trim() == "") {
-	            alert("label is empty");
+	        if (this.state.gossip.trim() == "") {
+	            alert("gossip name is empty");
 	            return;
 	        }
 	        if (this.state.subjects.trim() == "") {
@@ -125,76 +140,74 @@
 	            return;
 	        }
 	        var payload = {
-	            label: this.state.label,
-	            subjects: this.state.subjects.split(","),
+	            gossip: this.state.gossip,
+	            subjects: this.state.subjects.split(",").map(function (s) {
+	                return s.trim();
+	            }),
 	            classifiers: this.getClassifiersPayload()
 	        };
-	        ajar.post(location.protocol + "//" + serviceURL + "/gossip/", payload).then(console.log);
+	        ajar.post(location.protocol + "//" + serviceURL + "/gossip/", payload).then(function (data) {
+	            alert("gossip saved successfully");
+	        });
 	    },
 	    render: function render() {
 	        var _this = this;
 
 	        return React.createElement(
-	            'fieldset',
-	            null,
+	            'form',
+	            { onSubmit: this.handleSubmit },
 	            React.createElement(
-	                'legend',
-	                null,
-	                this.state.label
+	                'div',
+	                { className: 'form-group' },
+	                React.createElement(
+	                    'label',
+	                    null,
+	                    'Gossip'
+	                ),
+	                React.createElement('br', null),
+	                React.createElement('input', { className: 'form-control', value: this.state.gossip,
+	                    onChange: function onChange(e) {
+	                        return _this.setState({ 'gossip': e.target.value });
+	                    } })
 	            ),
 	            React.createElement(
-	                'form',
-	                { onSubmit: this.handleSubmit },
+	                'div',
+	                { className: 'form-group' },
 	                React.createElement(
-	                    'div',
-	                    { className: 'form-group' },
-	                    React.createElement(
-	                        'label',
-	                        null,
-	                        'Label'
-	                    ),
-	                    React.createElement('br', null),
-	                    React.createElement('input', { className: 'form-control', onChange: function onChange(e) {
-	                            return _this.setState({ 'label': e.target.value });
-	                        } })
+	                    'label',
+	                    null,
+	                    'Subjects (comma separated)'
 	                ),
+	                React.createElement('br', null),
+	                React.createElement('input', { className: 'form-control', value: this.state.subjects,
+	                    onChange: function onChange(e) {
+	                        return _this.setState({ 'subjects': e.target.value });
+	                    } })
+	            ),
+	            React.createElement(
+	                'div',
+	                { className: 'form-group' },
 	                React.createElement(
-	                    'div',
-	                    { className: 'form-group' },
+	                    'label',
+	                    null,
+	                    'Classifiers (',
 	                    React.createElement(
-	                        'label',
+	                        'a',
 	                        null,
-	                        'Subjects (comma separated)'
+	                        'description'
 	                    ),
-	                    React.createElement('br', null),
-	                    React.createElement('input', { className: 'form-control', onChange: function onChange(e) {
-	                            return _this.setState({ 'subjects': e.target.value });
-	                        } })
+	                    ')'
 	                ),
-	                React.createElement(
-	                    'div',
-	                    { className: 'form-group' },
-	                    React.createElement(
-	                        'label',
-	                        null,
-	                        'Classifiers (',
-	                        React.createElement(
-	                            'a',
-	                            null,
-	                            'description'
-	                        ),
-	                        ')'
-	                    ),
-	                    React.createElement('br', null),
-	                    React.createElement('textarea', { className: 'form-control', onChange: function onChange(e) {
-	                            return _this.setState({ 'classifiers': e.target.value });
-	                        } })
-	                ),
-	                React.createElement(
-	                    'button',
-	                    { type: 'submit', className: 'btn btn-default' },
-	                    'Save'
-	                )
+	                React.createElement('br', null),
+	                React.createElement('textarea', { className: 'form-control', value: this.state.classifiers,
+	                    onChange: function onChange(e) {
+	                        return _this.setState({ 'classifiers': e.target.value });
+	                    } })
+	            ),
+	            React.createElement(
+	                'button',
+	                { type: 'submit', className: 'btn btn-default' },
+	                'Save'
 	            )
 	        );
 	    }
@@ -243,7 +256,7 @@
 	        }
 
 	        MessageManager.onMessage(function (message) {
-	            if (message.gossip !== undefined && message.gossip !== this.props.name) {
+	            if (message.gossip !== undefined && message.gossip !== this.props.gossip) {
 	                return;
 	            }
 
@@ -286,6 +299,51 @@
 	    }
 	});
 
+	var GossipPanel = React.createClass({
+	    displayName: 'GossipPanel',
+
+	    getInitialState: function getInitialState() {
+	        return {
+	            edit: false
+	        };
+	    },
+	    toggleTemplate: function toggleTemplate() {
+	        this.setState({ edit: !this.state.edit });
+	    },
+	    render: function render() {
+	        var template;
+	        if (this.state.edit) {
+	            template = React.createElement(GossipForm, { gossip: this.props.label });
+	        } else {
+	            template = React.createElement(MultLineChartBox, { gossip: this.props.label });
+	        }
+	        return React.createElement(
+	            'div',
+	            { className: 'pull-left col-xs-12 col-sm-8 col-md-6 col-lg-6' },
+	            React.createElement(
+	                'div',
+	                { className: 'panel panel-default' },
+	                React.createElement(
+	                    'div',
+	                    { className: 'panel-heading' },
+	                    'Gossip: ',
+	                    this.props.label,
+	                    React.createElement(
+	                        'button',
+	                        { type: 'button', className: 'pull-right', onClick: this.toggleTemplate },
+	                        'Edit'
+	                    )
+	                ),
+	                React.createElement(
+	                    'div',
+	                    { className: 'panel-body' },
+	                    template
+	                )
+	            )
+	        );
+	    }
+	});
+
 	var App = React.createClass({
 	    displayName: 'App',
 
@@ -298,25 +356,12 @@
 	        MessageManager.onMessage(function (message) {
 	            if (this.state.gossips[message.gossip] === undefined) {
 	                this.state.gossips[message.gossip] = true;
+	                var that = this;
 	                ReactDOM.render(React.createElement(
 	                    'div',
 	                    null,
 	                    Object.keys(this.state.gossips).map(function (label) {
-	                        return React.createElement(
-	                            'div',
-	                            { className: 'pull-left col-xs-12 col-sm-8 col-md-6 col-lg-6' },
-	                            React.createElement(
-	                                'div',
-	                                { className: 'panel panel-default' },
-	                                React.createElement(
-	                                    'div',
-	                                    { className: 'panel-heading' },
-	                                    'Gossip: ',
-	                                    label
-	                                ),
-	                                React.createElement(MultLineChartBox, { name: label })
-	                            )
-	                        );
+	                        return React.createElement(GossipPanel, { label: label });
 	                    })
 	                ), this._el);
 	            }
@@ -333,7 +378,6 @@
 	                null,
 	                'Dashboard'
 	            ),
-	            React.createElement(AddGossip, null),
 	            React.createElement(
 	                'div',
 	                { className: 'row', ref: function ref(_ref2) {

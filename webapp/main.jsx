@@ -41,12 +41,28 @@ var MessageManager = (function() {
     };
 })();
 
-var AddGossip = React.createClass({
+var GossipForm = React.createClass({
     getInitialState: function() {
         return {
             label: this.props.label || "",
             subjects: "",
             classifiers: ""
+        }
+    },
+    componentDidMount: function() {
+        if (this.props.gossip) {
+            ajar.get(location.protocol + "//" + serviceURL + "/gossip/" + this.props.gossip)
+            .then(function(gossip) {
+                console.log(gossip);
+                this.setState({
+                    gossip: gossip.gossip,
+                    subjects: gossip.subjects.join(", "),
+                    classifiers: Object.keys(gossip.classifiers).map(function(label) {
+                        var patterns = gossip.classifiers[label];
+                        return ":" + label + "\n" + patterns.join("\n");
+                    }).join("\n")
+                });
+            }.bind(this));
         }
     },
     getClassifiersPayload: function() {
@@ -66,8 +82,8 @@ var AddGossip = React.createClass({
     },
     handleSubmit: function(e) {
         e.preventDefault();
-        if (this.state.label.trim() == "") {
-            alert("label is empty");
+        if (this.state.gossip.trim() == "") {
+            alert("gossip name is empty");
             return;
         }
         if (this.state.subjects.trim() == "") {
@@ -75,35 +91,37 @@ var AddGossip = React.createClass({
             return;
         }
         var payload = {
-            label: this.state.label,
-            subjects: this.state.subjects.split(","),
+            gossip: this.state.gossip,
+            subjects: this.state.subjects.split(",").map((s) => s.trim()),
             classifiers: this.getClassifiersPayload()
         };
-        ajar.post(location.protocol + "//" + serviceURL + "/gossip/", payload).then(console.log);
+        ajar.post(location.protocol + "//" + serviceURL + "/gossip/", payload).then(function(data) {
+            alert("gossip saved successfully");
+        });
     },
     render: function() {
         return (
-        <fieldset>
-            <legend>{this.state.label}</legend>
-            <form onSubmit={this.handleSubmit}>
-                <div className="form-group">
-                <label>Label</label><br />
-                <input className="form-control" onChange={(e) => this.setState({'label': e.target.value}) } />
-                </div>
+        <form onSubmit={this.handleSubmit}>
+            <div className="form-group">
+            <label>Gossip</label><br />
+            <input className="form-control" value={this.state.gossip}
+                onChange={(e) => this.setState({'gossip': e.target.value}) } />
+            </div>
 
-                <div className="form-group">
-                <label>Subjects (comma separated)</label><br />
-                <input className="form-control" onChange={(e) => this.setState({'subjects': e.target.value}) } />
-                </div>
+            <div className="form-group">
+            <label>Subjects (comma separated)</label><br />
+            <input className="form-control" value={this.state.subjects}
+                onChange={(e) => this.setState({'subjects': e.target.value}) } />
+            </div>
 
-                <div className="form-group">
-                <label>Classifiers (<a>description</a>)</label><br />
-                <textarea className="form-control" onChange={(e) => this.setState({'classifiers': e.target.value}) } />
-                </div>
+            <div className="form-group">
+            <label>Classifiers (<a>description</a>)</label><br />
+            <textarea className="form-control" value={this.state.classifiers}
+                onChange={(e) => this.setState({'classifiers': e.target.value}) } />
+            </div>
 
-                <button type="submit" className="btn btn-default">Save</button>
-            </form>
-        </fieldset>
+            <button type="submit" className="btn btn-default">Save</button>
+        </form>
         );
     }
 });
@@ -146,7 +164,7 @@ var MultLineChartBox = React.createClass({
         }
 
         MessageManager.onMessage(function(message) {
-            if (message.gossip !== undefined && message.gossip !== this.props.name) {
+            if (message.gossip !== undefined && message.gossip !== this.props.gossip) {
                 return;
             }
 
@@ -183,6 +201,37 @@ var MultLineChartBox = React.createClass({
     }
 });
 
+var GossipPanel = React.createClass({
+    getInitialState: function() {
+        return {
+            edit: false
+        };
+    },
+    toggleTemplate: function() {
+        this.setState({edit: !this.state.edit});
+    },
+    render: function() {
+        var template;
+        if (this.state.edit) {
+            template = <GossipForm gossip={this.props.label} />;
+        } else {
+            template = <MultLineChartBox gossip={this.props.label} />;
+        }
+        return (
+        <div className="pull-left col-xs-12 col-sm-8 col-md-6 col-lg-6">
+            <div className="panel panel-default">
+                <div className="panel-heading">
+                    Gossip: {this.props.label}
+                    <button type="button" className="pull-right" onClick={this.toggleTemplate}>Edit</button>
+                </div>
+                <div className="panel-body">
+                    {template}
+                </div>
+            </div>
+        </div>
+        );
+    }
+});
 
 var App = React.createClass({
     getInitialState: function() {
@@ -194,16 +243,11 @@ var App = React.createClass({
         MessageManager.onMessage(function(message) {
             if (this.state.gossips[message.gossip] === undefined) {
                 this.state.gossips[message.gossip] = true;
+                var that = this;
                 ReactDOM.render(
                     <div>
                     {Object.keys(this.state.gossips).map(function(label) {
-                        return (
-                        <div className="pull-left col-xs-12 col-sm-8 col-md-6 col-lg-6">
-                            <div className="panel panel-default">
-                                <div className="panel-heading">Gossip: {label}</div>
-                                <MultLineChartBox name={label} />
-                            </div>
-                        </div>)
+                        return (<GossipPanel label={label} />)
                     })}
                     </div>,
                     this._el)
@@ -215,7 +259,6 @@ var App = React.createClass({
         return (
         <div className="container">
             <h1>Dashboard</h1>
-            <AddGossip />
             <div className="row" ref={(ref) => this._el = ref}>
                 <div className="col-xs-12 col-sm-12 col-md-12 col-lg-12">Loading...</div>
             </div>
