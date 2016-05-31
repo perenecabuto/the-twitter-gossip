@@ -16,9 +16,7 @@ func (gwp GossipWorkerPool) BuildWorker(id string, g *Gossip, c []*GossipClassif
 }
 
 func (gwp GossipWorkerPool) AddWorker(id string, w *GossipWorker) {
-	if _, ok := gwp.pool[id]; ok {
-		gwp.RemoveWorker(id)
-	}
+	gwp.RemoveWorker(id)
 	gwp.pool[id] = w
 	go gwp.listenTo(w)
 }
