@@ -18,17 +18,10 @@ var (
 )
 
 type TweetPrinter struct {
-	listener chan *twitter.Tweet
 }
 
 func NewTweetPrinter() *TweetPrinter {
-	input := make(chan *twitter.Tweet)
-	printer := &TweetPrinter{input}
-	return printer
-}
-
-func (tp *TweetPrinter) InputChann() chan *twitter.Tweet {
-	return tp.listener
+	return &TweetPrinter{}
 }
 
 func (tp *TweetPrinter) OnTweet(tweet *twitter.Tweet) {

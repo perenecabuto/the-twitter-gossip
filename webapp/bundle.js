@@ -58,7 +58,7 @@
 
 	    function connectWebsocket() {
 	        console.log("connect webSocket");
-	        webSocket = new WebSocket("ws://localhost:8000/events");
+	        webSocket = new WebSocket("ws://" + window.location.hostname + ":8000/events");
 	        webSocket.onopen = function (event) {
 	            console.log("open", event);
 	        };

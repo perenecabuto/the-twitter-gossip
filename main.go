@@ -1,6 +1,7 @@
 package main
 
 import (
+	"io"
 	"log"
 	"net/http"
 
@@ -20,15 +21,15 @@ func main() {
 		log.Println("(", gossip.Label, ")", "worker started")
 	}
 
+	connections := NewWSConnections()
+	go connections.BroadcastJSONFromChann(clientMessage)
+	log.Println("Listening for WS connections")
+
 	http.Handle("/events", websocket.Handler(func(ws *websocket.Conn) {
-		for payload := range clientMessage {
-			log.Println("Sending ", payload)
-			if err := websocket.JSON.Send(ws, payload); err != nil {
-				log.Println(err)
-				ws.Close()
-				return
-			}
-		}
+		log.Println("New WS connection")
+		defer connections.Remove(ws)
+		connections.Add(ws)
+		io.Copy(ws, ws)
 	}))
 
 	http.Handle("/gossip/", &GossipResourceHandler{service})

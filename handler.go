@@ -127,7 +127,7 @@ func (gah *GossipResourceHandler) buildGossipPayload(g *Gossip) *GossipPayload {
 	classifiersString := ""
 	for _, c := range classifiers {
 		classifiersString += ":" + c.Label + "\n"
-		classifiersString += strings.Join(c.Patterns, "\n")
+		classifiersString += strings.Join(c.Patterns, "\n") + "\n"
 	}
 
 	return &GossipPayload{g.Label, g.Subjects, classifiersString}

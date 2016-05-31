@@ -17,7 +17,6 @@ var (
 )
 
 type TwitterStreamListener interface {
-	InputChann() chan *twitter.Tweet
 	OnTweet(*twitter.Tweet)
 }
 
@@ -47,7 +46,7 @@ func (ts *TwitterStream) Listen() {
 		if ok {
 			for _, listener := range ts.listeners {
 				go func(l TwitterStreamListener) {
-					l.InputChann() <- tweet
+					go l.OnTweet(tweet)
 				}(listener)
 			}
 		}
@@ -55,11 +54,6 @@ func (ts *TwitterStream) Listen() {
 }
 
 func (ts *TwitterStream) AddListener(listener TwitterStreamListener) {
-	ts.listeners = append(ts.listeners, listener)
 	fmt.Println("Add ", reflect.TypeOf(listener))
-	go func() {
-		for tweet := range listener.InputChann() {
-			go listener.OnTweet(tweet)
-		}
-	}()
+	ts.listeners = append(ts.listeners, listener)
 }

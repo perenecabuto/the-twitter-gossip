@@ -3,8 +3,6 @@ package main
 import (
 	"log"
 	"time"
-
-	"github.com/dghubble/go-twitter/twitter"
 )
 
 type GossipEventPayload struct {
@@ -13,36 +11,44 @@ type GossipEventPayload struct {
 }
 
 type GossipWorker struct {
-	stream *TwitterStream
-	worker *TimeEventWorker
+	gossip     *Gossip
+	stream     *TwitterStream
+	worker     *TimedLabelCounter
+	listener   *MessageClassifierListener
+	eventChann chan *GossipEventPayload
 }
 
 func NewGossipWorker(gossip *Gossip, gossipClassifiers []*GossipClassifier, eventChann chan *GossipEventPayload) *GossipWorker {
 	log.Println("Listenning Gossip: ", gossip.Label)
 	stream := NewTwitterStream(gossip.Subjects)
 	classifiers := ConvertMessageClassifiers(gossipClassifiers)
-	classifierListener := NewMessageClassifierListener(classifiers)
-	stream.AddListener(classifierListener)
+	listener := NewMessageClassifierListener(classifiers)
+	stream.AddListener(listener)
 
 	workerInterval := 10 * time.Second
-	worker := NewTimeEventWorker(workerInterval)
-	worker.SetOnEvent(func(t time.Time, events EventGroup) {
-		log.Println("(", gossip.Label, ") time trigger: ", events)
-		if len(events) > 0 {
-			eventChann <- &GossipEventPayload{gossip.Label, events}
-		}
-	})
+	worker := NewTimedLabelCounter(workerInterval)
 
-	classifierListener.SetOnMatch(func(label string, t *twitter.Tweet) {
-		go worker.ReportEvent(label)
-	})
-
-	return &GossipWorker{stream, worker}
+	return &GossipWorker{gossip, stream, worker, listener, eventChann}
 }
 
 func (gw *GossipWorker) Start() {
 	go gw.stream.Listen()
-	gw.worker.Start()
+	go gw.worker.Start()
+	gw.run()
+}
+
+func (gw *GossipWorker) run() {
+	for {
+		select {
+		case events := <-gw.worker.OnTimeChann:
+			log.Println("Gossip:", gw.gossip.Label, "Events:", events)
+			if len(events) > 0 {
+				gw.eventChann <- &GossipEventPayload{gw.gossip.Label, events}
+			}
+		case label := <-gw.listener.OnMatchChann:
+			go gw.worker.ReportEvent(label)
+		}
+	}
 }
 
 func ConvertMessageClassifiers(gclassifiers []*GossipClassifier) []*MessageClassifier {
