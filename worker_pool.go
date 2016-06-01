@@ -25,12 +25,51 @@ func (gwp GossipWorkerPool) BuildWorker(id WorkerID, g *Gossip, c []*GossipClass
 func (gwp *GossipWorkerPool) AddWorker(id WorkerID, w *GossipWorker) {
 	gwp.RemoveWorker(id)
 	gwp.pool[id] = w
-	go gwp.listenTo(id, w)
 }
 
 func (gwp GossipWorkerPool) StartWorker(id WorkerID) {
-	if w, ok := gwp.pool[id]; ok {
+	if w, ok := gwp.pool[id]; ok && w.State == STOPPED {
+		go gwp.listenTo(id, w)
 		go w.Start()
+	}
+}
+
+func (gwp GossipWorkerPool) StopWorker(id WorkerID) {
+	if w, ok := gwp.pool[id]; ok && w.State == STARTED {
+		gwp.stopChann <- id
+		log.Println("Stopping POOL listener for:", id)
+		w.Stop()
+	}
+}
+
+func (gwp GossipWorkerPool) WorkerState(id WorkerID) GossipWorkerState {
+	if w, ok := gwp.pool[id]; ok {
+		return w.State
+	}
+	return ""
+}
+
+func (gwp *GossipWorkerPool) RemoveWorker(id WorkerID) {
+	if w, ok := gwp.pool[id]; ok {
+		gwp.StopWorker(id)
+		close(w.EventChann)
+		delete(gwp.pool, id)
+	}
+}
+
+func (gwp GossipWorkerPool) StartAll() {
+	log.Println("Starting ", len(gwp.pool), " workers")
+	for id, _ := range gwp.pool {
+		log.Println("")
+		go gwp.StartWorker(id)
+	}
+}
+
+func (gwp GossipWorkerPool) StopAll() {
+	log.Println("Stopping ", len(gwp.pool), " workers")
+	for id, _ := range gwp.pool {
+		log.Println("")
+		gwp.StopWorker(id)
 	}
 }
 
@@ -43,41 +82,10 @@ func (gwp GossipWorkerPool) listenTo(id WorkerID, w *GossipWorker) {
 			}
 		case closeID := <-gwp.stopChann:
 			if closeID == id {
-				log.Println("Stoping POOL listener for:", id)
+				log.Println("Stopped POOL listener for:", id)
 				return
 			}
 		}
 
-	}
-
-	log.Println("Closing listenTo", w)
-}
-
-func (gwp GossipWorkerPool) StopWorker(id WorkerID) {
-	if w, ok := gwp.pool[id]; ok {
-		gwp.stopChann <- id
-		w.Stop()
-	}
-}
-
-func (gwp *GossipWorkerPool) RemoveWorker(id WorkerID) {
-	if w, ok := gwp.pool[id]; ok {
-		gwp.StopWorker(id)
-		close(w.EventChann)
-		delete(gwp.pool, id)
-	}
-}
-
-func (gwp GossipWorkerPool) StartAll() {
-	for _, w := range gwp.pool {
-		go w.Start()
-	}
-}
-
-func (gwp GossipWorkerPool) StopAll() {
-	log.Println("Stop All (", len(gwp.pool), ") workers")
-	for id, _ := range gwp.pool {
-		log.Println("")
-		gwp.StopWorker(id)
 	}
 }
