@@ -12,9 +12,9 @@ import (
 )
 
 func main() {
-	service := &DummyGossipService{}
+	//service := &DummyGossipService{}
 	wsClients := NewWSConnections()
-	//service := NewMongoGossipService()
+	service := NewMongoGossipService()
 	workerPool := NewGossipWorkerPool()
 	workerPool.OnEvent(func(p *GossipEventPayload) {
 		wsClients.BroadcastChann <- p
@@ -24,10 +24,9 @@ func main() {
 	for _, gossip := range gossips {
 		classifiers, _ := service.FindClassifiersByGossip(gossip)
 		workerPool.BuildWorker(WorkerID(gossip.Label), gossip, classifiers)
-		go workerPool.StartWorker(WorkerID(gossip.Label))
 	}
 
-	http.Handle("/gossip/", CorsMiddleware(&GossipResourceHandler{service}))
+	http.Handle("/gossip/", CorsMiddleware(NewGossipResourceHandler(service, workerPool)))
 	http.Handle("/events", websocket.Handler(func(ws *websocket.Conn) {
 		log.Println("New WS connection")
 		defer wsClients.Remove(ws)
@@ -36,6 +35,7 @@ func main() {
 	}))
 
 	go StopAllWorkersAtExit(workerPool)
+	go workerPool.StartAll()
 	go wsClients.ListenBroadcasts()
 	err := http.ListenAndServe(":8000", nil)
 	if err != nil {
