@@ -102,7 +102,6 @@
 	    componentDidMount: function componentDidMount() {
 	        if (this.props.gossip) {
 	            ajar.get(location.protocol + "//" + serviceURL + "/gossip/" + this.props.gossip).then(function (gossip) {
-	                console.log(gossip);
 	                this.setState({
 	                    gossip: gossip.gossip,
 	                    subjects: gossip.subjects.join(", "),
@@ -256,7 +255,7 @@
 	        }
 
 	        MessageManager.onMessage(function (message) {
-	            if (message.gossip !== undefined && message.gossip !== this.props.gossip) {
+	            if (!this.isMounted() || message.gossip !== undefined && message.gossip !== this.props.gossip) {
 	                return;
 	            }
 
@@ -310,12 +309,22 @@
 	    toggleTemplate: function toggleTemplate() {
 	        this.setState({ edit: !this.state.edit });
 	    },
+	    stopWorker: function stopWorker() {
+	        ajar.get(location.protocol + "//" + serviceURL + "/gossip/" + this.props.gossip + "/stop").then(function () {
+	            alert(this.props.gossip + " stopped");
+	        }.bind(this));
+	    },
+	    startWorker: function startWorker() {
+	        ajar.get(location.protocol + "//" + serviceURL + "/gossip/" + this.props.gossip + "/start").then(function () {
+	            alert(this.props.gossip + " started");
+	        }.bind(this));
+	    },
 	    render: function render() {
 	        var template;
 	        if (this.state.edit) {
-	            template = React.createElement(GossipForm, { gossip: this.props.label });
+	            template = React.createElement(GossipForm, { gossip: this.props.gossip });
 	        } else {
-	            template = React.createElement(MultLineChartBox, { gossip: this.props.label });
+	            template = React.createElement(MultLineChartBox, { gossip: this.props.gossip });
 	        }
 	        return React.createElement(
 	            'div',
@@ -328,6 +337,16 @@
 	                    { className: 'panel-heading' },
 	                    'Gossip: ',
 	                    this.props.label,
+	                    React.createElement(
+	                        'button',
+	                        { type: 'button', className: 'pull-right', onClick: this.startWorker },
+	                        'Start'
+	                    ),
+	                    React.createElement(
+	                        'button',
+	                        { type: 'button', className: 'pull-right', onClick: this.stopWorker },
+	                        'Stop'
+	                    ),
 	                    React.createElement(
 	                        'button',
 	                        { type: 'button', className: 'pull-right', onClick: this.toggleTemplate },
@@ -360,8 +379,8 @@
 	                ReactDOM.render(React.createElement(
 	                    'div',
 	                    null,
-	                    Object.keys(this.state.gossips).map(function (label) {
-	                        return React.createElement(GossipPanel, { label: label });
+	                    Object.keys(this.state.gossips).map(function (gossip) {
+	                        return React.createElement(GossipPanel, { gossip: gossip });
 	                    })
 	                ), this._el);
 	            }

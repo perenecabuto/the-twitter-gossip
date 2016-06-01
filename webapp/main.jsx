@@ -53,7 +53,6 @@ var GossipForm = React.createClass({
         if (this.props.gossip) {
             ajar.get(location.protocol + "//" + serviceURL + "/gossip/" + this.props.gossip)
             .then(function(gossip) {
-                console.log(gossip);
                 this.setState({
                     gossip: gossip.gossip,
                     subjects: gossip.subjects.join(", "),
@@ -164,7 +163,7 @@ var MultLineChartBox = React.createClass({
         }
 
         MessageManager.onMessage(function(message) {
-            if (message.gossip !== undefined && message.gossip !== this.props.gossip) {
+            if (!this.isMounted() || message.gossip !== undefined && message.gossip !== this.props.gossip) {
                 return;
             }
 
@@ -210,18 +209,30 @@ var GossipPanel = React.createClass({
     toggleTemplate: function() {
         this.setState({edit: !this.state.edit});
     },
+    stopWorker: function() {
+        ajar.get(location.protocol + "//" + serviceURL + "/gossip/" + this.props.gossip + "/stop").then(function(data) {
+            alert("Worker state ": data.state);
+        }.bind(this));
+    },
+    startWorker: function() {
+        ajar.get(location.protocol + "//" + serviceURL + "/gossip/" + this.props.gossip + "/start").then(function() {
+            alert("Worker state ": data.state);
+        }.bind(this));
+    },
     render: function() {
         var template;
         if (this.state.edit) {
-            template = <GossipForm gossip={this.props.label} />;
+            template = <GossipForm gossip={this.props.gossip} />;
         } else {
-            template = <MultLineChartBox gossip={this.props.label} />;
+            template = <MultLineChartBox gossip={this.props.gossip} />;
         }
         return (
         <div className="pull-left col-xs-12 col-sm-8 col-md-6 col-lg-6">
             <div className="panel panel-default">
                 <div className="panel-heading">
                     Gossip: {this.props.label}
+                    <button type="button" className="pull-right" onClick={this.startWorker}>Start</button>
+                    <button type="button" className="pull-right" onClick={this.stopWorker}>Stop</button>
                     <button type="button" className="pull-right" onClick={this.toggleTemplate}>Edit</button>
                 </div>
                 <div className="panel-body">
@@ -246,8 +257,8 @@ var App = React.createClass({
                 var that = this;
                 ReactDOM.render(
                     <div>
-                    {Object.keys(this.state.gossips).map(function(label) {
-                        return (<GossipPanel label={label} />)
+                    {Object.keys(this.state.gossips).map(function(gossip) {
+                        return (<GossipPanel gossip={gossip} />)
                     })}
                     </div>,
                     this._el)
