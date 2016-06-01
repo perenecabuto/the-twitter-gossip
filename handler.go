@@ -18,6 +18,17 @@ type GossipEventHistoryPayload struct {
 	History []*EventGroupPayload `json:"history"`
 }
 
+type GossipPayload struct {
+	Gossip      string              `json:"gossip"`
+	Subjects    []string            `json:"subjects"`
+	Classifiers map[string][]string `json:"classifiers"`
+	WorkerState string              `json:"state"`
+}
+
+type GossipListPayload struct {
+	Gossips []*GossipPayload `json:"gossips"`
+}
+
 func (p *GossipEventHistoryPayload) FromModelList(gossipLabel string, list []*GossipClassifierEvent) {
 	history := []*EventGroupPayload{}
 	var eventGroup *EventGroupPayload
@@ -35,13 +46,6 @@ func (p *GossipEventHistoryPayload) FromModelList(gossipLabel string, list []*Go
 	p.History = history
 }
 
-type GossipPayload struct {
-	Gossip      string              `json:"gossip"`
-	Subjects    []string            `json:"subjects"`
-	Classifiers map[string][]string `json:"classifiers"`
-	WorkerState string              `json:"state"`
-}
-
 func (p *GossipPayload) ToModel() (*Gossip, []*GossipClassifier) {
 	gossip := &Gossip{Label: p.Gossip, Subjects: p.Subjects}
 	classifiers := []*GossipClassifier{}
@@ -49,10 +53,6 @@ func (p *GossipPayload) ToModel() (*Gossip, []*GossipClassifier) {
 		classifiers = append(classifiers, &GossipClassifier{Label: label, Patterns: patterns})
 	}
 	return gossip, classifiers
-}
-
-type GossipListPayload struct {
-	Gossips []*GossipPayload `json:"gossip"`
 }
 
 type GossipResourceHandler struct {

@@ -161,7 +161,6 @@ var MultLineChartBox = React.createClass({
             this.state.chartSeries.push({field: "top", name: "", color: "transparent"});
         }
 
-
         if (this.props.gossip) {
             ajar.get(location.protocol + "//" + serviceURL + "/gossip/" + this.props.gossip + "/history")
             .then(function(data) {
@@ -269,18 +268,21 @@ var App = React.createClass({
         };
     },
     componentDidMount: function() {
+        ajar.get(location.protocol + "//" + serviceURL + "/gossip/")
+            .then(function(data) {
+                for (var i in data.gossips) {
+                    var item = data.gossips[i];
+                    if (this.state.gossips[item.gossip] === undefined) {
+                        this.state.gossips[item.gossip] = true;
+                    }
+                }
+                this.setState({gossips: this.state.gossips});
+            }.bind(this));
         MessageManager.onMessage(function(message) {
             if (this.state.gossips[message.gossip] === undefined) {
                 this.state.gossips[message.gossip] = true;
-                var that = this;
-                ReactDOM.render(
-                    <div>
-                    {Object.keys(this.state.gossips).map(function(gossip) {
-                        return (<GossipPanel gossip={gossip} />)
-                    })}
-                    </div>,
-                    this._el)
             }
+            this.setState({gossips: this.state.gossips});
         }.bind(this));
 
     },
@@ -289,7 +291,9 @@ var App = React.createClass({
         <div className="container">
             <h1>Dashboard</h1>
             <div className="row" ref={(ref) => this._el = ref}>
-                <div className="col-xs-12 col-sm-12 col-md-12 col-lg-12">Loading...</div>
+                {Object.keys(this.state.gossips).map(function(gossip) {
+                    return (<GossipPanel gossip={gossip} />)
+                })}
             </div>
         </div>
         );

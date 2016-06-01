@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-const DEFAULT_INTERVAL = 1 * time.Second
+const DEFAULT_INTERVAL = 10 * time.Second
 
 type GossipEventGroup struct {
 	Gossip     string      `json:"gossip"`
@@ -72,8 +72,8 @@ func (gw *GossipWorker) run() {
 			gw.startChann <- true
 
 		case group := <-gw.timeCounter.OnTimeChann:
-			log.Println("Gossip:", gw.gossip.Label, "Events:", group)
 			if len(group.Events) > 0 {
+				log.Println("Gossip:", gw.gossip.Label, "Events:", group)
 				gw.EventChann <- &GossipEventGroup{gw.gossip.Label, group}
 			}
 

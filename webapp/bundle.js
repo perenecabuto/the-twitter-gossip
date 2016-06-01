@@ -388,18 +388,20 @@
 	        };
 	    },
 	    componentDidMount: function componentDidMount() {
+	        ajar.get(location.protocol + "//" + serviceURL + "/gossip/").then(function (data) {
+	            for (var i in data.gossips) {
+	                var item = data.gossips[i];
+	                if (this.state.gossips[item.gossip] === undefined) {
+	                    this.state.gossips[item.gossip] = true;
+	                }
+	            }
+	            this.setState({ gossips: this.state.gossips });
+	        }.bind(this));
 	        MessageManager.onMessage(function (message) {
 	            if (this.state.gossips[message.gossip] === undefined) {
 	                this.state.gossips[message.gossip] = true;
-	                var that = this;
-	                ReactDOM.render(React.createElement(
-	                    'div',
-	                    null,
-	                    Object.keys(this.state.gossips).map(function (gossip) {
-	                        return React.createElement(GossipPanel, { gossip: gossip });
-	                    })
-	                ), this._el);
 	            }
+	            this.setState({ gossips: this.state.gossips });
 	        }.bind(this));
 	    },
 	    render: function render() {
@@ -418,11 +420,9 @@
 	                { className: 'row', ref: function ref(_ref2) {
 	                        return _this3._el = _ref2;
 	                    } },
-	                React.createElement(
-	                    'div',
-	                    { className: 'col-xs-12 col-sm-12 col-md-12 col-lg-12' },
-	                    'Loading...'
-	                )
+	                Object.keys(this.state.gossips).map(function (gossip) {
+	                    return React.createElement(GossipPanel, { gossip: gossip });
+	                })
 	            )
 	        );
 	    }
