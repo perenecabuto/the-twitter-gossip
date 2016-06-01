@@ -21,22 +21,13 @@ type TwitterStreamListener interface {
 
 type TwitterStream struct {
 	tracks    []string
-	stream    *twitter.Stream
 	listeners []TwitterStreamListener
 	stopChann chan bool
 }
 
 func NewTwitterStream(tracks []string) *TwitterStream {
-	params := &twitter.StreamFilterParams{
-		Track:         tracks,
-		StallWarnings: twitter.Bool(true),
-	}
-	stream, err := client.Streams.Filter(params)
-	if err != nil {
-		log.Panic("Error!!!", err)
-	}
 
-	return &TwitterStream{tracks, stream, []TwitterStreamListener{}, make(chan bool)}
+	return &TwitterStream{tracks, []TwitterStreamListener{}, make(chan bool)}
 }
 
 func (ts *TwitterStream) AddListener(listener TwitterStreamListener) {
@@ -44,10 +35,16 @@ func (ts *TwitterStream) AddListener(listener TwitterStreamListener) {
 }
 
 func (ts *TwitterStream) Listen() {
+	params := &twitter.StreamFilterParams{Track: ts.tracks, StallWarnings: twitter.Bool(true)}
+	stream, err := client.Streams.Filter(params)
+	if err != nil {
+		log.Panic("Error!!!", err)
+	}
+
 	fmt.Println("Waiting for messages about ", ts.tracks)
 	for {
 		select {
-		case message := <-ts.stream.Messages:
+		case message := <-stream.Messages:
 			tweet, ok := message.(*twitter.Tweet)
 			if ok {
 				for _, listener := range ts.listeners {
@@ -58,7 +55,7 @@ func (ts *TwitterStream) Listen() {
 			}
 		case <-ts.stopChann:
 			log.Println("! Stopping TwitterStream: ", ts.tracks)
-			ts.stream.Stop()
+			stream.Stop()
 			ts.stopChann <- true
 			return
 		}
