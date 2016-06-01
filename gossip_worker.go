@@ -7,9 +7,9 @@ import (
 
 const DEFAULT_INTERVAL = 1 * time.Second
 
-type GossipEventPayload struct {
-	Gossip string     `json:"gossip"`
-	Events EventGroup `json:"events"`
+type GossipEventGroup struct {
+	Gossip     string      `json:"gossip"`
+	EventGroup *EventGroup `json:"events"`
 }
 
 type GossipWorkerState string
@@ -29,7 +29,7 @@ type GossipWorker struct {
 	State       GossipWorkerState
 	stopChann   chan bool
 	startChann  chan bool
-	EventChann  chan *GossipEventPayload
+	EventChann  chan *GossipEventGroup
 }
 
 func NewGossipWorker(gossip *Gossip, gossipClassifiers []*GossipClassifier) *GossipWorker {
@@ -40,7 +40,7 @@ func NewGossipWorker(gossip *Gossip, gossipClassifiers []*GossipClassifier) *Gos
 	listener := NewMessageClassifierListener(classifiers)
 	stream.AddListener(listener)
 
-	return &GossipWorker{gossip, stream, timeCounter, listener, STOPPED, make(chan bool), make(chan bool), make(chan *GossipEventPayload)}
+	return &GossipWorker{gossip, stream, timeCounter, listener, STOPPED, make(chan bool), make(chan bool), make(chan *GossipEventGroup)}
 }
 
 func (gw *GossipWorker) Start() {
@@ -71,10 +71,10 @@ func (gw *GossipWorker) run() {
 			go gw.timeCounter.Start()
 			gw.startChann <- true
 
-		case events := <-gw.timeCounter.OnTimeChann:
-			log.Println("Gossip:", gw.gossip.Label, "Events:", events)
-			if len(events) > 0 {
-				gw.EventChann <- &GossipEventPayload{gw.gossip.Label, events}
+		case group := <-gw.timeCounter.OnTimeChann:
+			log.Println("Gossip:", gw.gossip.Label, "Events:", group)
+			if len(group.Events) > 0 {
+				gw.EventChann <- &GossipEventGroup{gw.gossip.Label, group}
 			}
 
 		case label := <-gw.listener.OnMatchChann:

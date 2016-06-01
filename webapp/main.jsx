@@ -24,7 +24,7 @@ var MessageManager = (function() {
         }
 
         webSocket.onmessage = function(event) {
-            console.log("onmessage");
+            //console.log("onmessage");
             var data = JSON.parse(event.data);
             for (var i in listeners) {
                 listeners[i](data);
@@ -157,9 +157,21 @@ var MultLineChartBox = React.createClass({
         }.bind(this));
     },
     componentDidMount: function() {
-        var chartSeries = this.state.chartSeries;
         if (this.props.topValue) {
-            chartSeries.push({field: "top", name: "", color: "transparent"});
+            this.state.chartSeries.push({field: "top", name: "", color: "transparent"});
+        }
+
+
+        if (this.props.gossip) {
+            ajar.get(location.protocol + "//" + serviceURL + "/gossip/" + this.props.gossip + "/history")
+            .then(function(data) {
+                data.history.reverse();
+                for (var i in data.history) {
+                    this.addChartItem(data.history[i]);
+                }
+
+                this.renderChart.call(this);
+            }.bind(this));
         }
 
         MessageManager.onMessage(function(message) {
@@ -167,31 +179,37 @@ var MultLineChartBox = React.createClass({
                 return;
             }
 
-            var item = {key: 'key', index: new Date()};
-            if (this.props.topValue) {
-                item.top = this.props.topValue;
-            }
-
-            for (var key in message.events) {
-                var alreadyInChart = false;
-                for (var i in chartSeries) {
-                    alreadyInChart = alreadyInChart || chartSeries[i].field == key;
-                    item[key] = message.events[key];
-                }
-                if (!alreadyInChart) {
-                   chartSeries.push({field: key, name: key, color: this.getRandomColor()});
-               }
-            }
-
-            var data = this.state.data || [];
-            if (data.length == this.state.maxItems) {
-                data.shift();
-            }
-            data.push(item);
-
-            this.setState({data: data, chartSeries: chartSeries});
+            this.addChartItem(message);
             this.renderChart.call(this);
         }.bind(this));
+    },
+
+    addChartItem: function(gossipEvent) {
+        var chartSeries = this.state.chartSeries;
+        var item = {index: new Date(gossipEvent.timestamp * 1000)};
+        if (this.props.topValue) {
+            item.top = this.props.topValue;
+        }
+
+        for (var key in gossipEvent.events) {
+            var alreadyInChart = false;
+            for (var i in chartSeries) {
+                alreadyInChart = alreadyInChart || chartSeries[i].field == key;
+            }
+            if (!alreadyInChart) {
+                chartSeries.push({field: key, name: key, color: this.getRandomColor()});
+            }
+            item[key] = gossipEvent.events[key];
+        }
+
+        //console.log(item);
+
+        var data = this.state.data || [];
+        if (data.length == this.state.maxItems) {
+            data.shift();
+        }
+        data.push(item);
+        this.state.data = data;
     },
     render: function() {
         return (
@@ -211,12 +229,12 @@ var GossipPanel = React.createClass({
     },
     stopWorker: function() {
         ajar.get(location.protocol + "//" + serviceURL + "/gossip/" + this.props.gossip + "/stop").then(function(data) {
-            alert("Worker state ": data.state);
+            alert("Worker state " + data.state);
         }.bind(this));
     },
     startWorker: function() {
         ajar.get(location.protocol + "//" + serviceURL + "/gossip/" + this.props.gossip + "/start").then(function() {
-            alert("Worker state ": data.state);
+            alert("Worker state " + data.state);
         }.bind(this));
     },
     render: function() {
@@ -230,7 +248,7 @@ var GossipPanel = React.createClass({
         <div className="pull-left col-xs-12 col-sm-8 col-md-6 col-lg-6">
             <div className="panel panel-default">
                 <div className="panel-heading">
-                    Gossip: {this.props.label}
+                    Gossip: {this.props.gossip}
                     <button type="button" className="pull-right" onClick={this.startWorker}>Start</button>
                     <button type="button" className="pull-right" onClick={this.stopWorker}>Stop</button>
                     <button type="button" className="pull-right" onClick={this.toggleTemplate}>Edit</button>

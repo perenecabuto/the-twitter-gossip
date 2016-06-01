@@ -5,28 +5,33 @@ import (
 	"time"
 )
 
-type EventGroup map[string]int
+type EventCount map[string]int
 
-func (eg EventGroup) Clone() EventGroup {
-	evcopy := EventGroup{}
-	for k, v := range eg {
-		evcopy[k] = v
+type EventGroup struct {
+	Time   time.Time
+	Events EventCount
+}
+
+func NewEventGroup(t time.Time, events EventCount) *EventGroup {
+	eg := &EventGroup{t, make(EventCount)}
+	for k, v := range events {
+		eg.Events[k] = v
 	}
-	return evcopy
+	return eg
 }
 
 type TimedLabelCounter struct {
 	interval    time.Duration
-	events      EventGroup
+	events      EventCount
 	reportChann chan string
 	stopChann   chan bool
-	OnTimeChann chan EventGroup
+	OnTimeChann chan *EventGroup
 }
 
 func NewTimedLabelCounter(interval time.Duration) *TimedLabelCounter {
-	return &TimedLabelCounter{interval: interval, events: EventGroup{},
+	return &TimedLabelCounter{interval: interval, events: EventCount{},
 		reportChann: make(chan string), stopChann: make(chan bool),
-		OnTimeChann: make(chan EventGroup)}
+		OnTimeChann: make(chan *EventGroup)}
 }
 
 func (tlc *TimedLabelCounter) ReportEvent(name string) {
@@ -37,8 +42,8 @@ func (tlc *TimedLabelCounter) Start() {
 	ticker := time.NewTicker(tlc.interval)
 	for {
 		select {
-		case <-ticker.C:
-			tlc.OnTimeChann <- tlc.events.Clone()
+		case t := <-ticker.C:
+			tlc.OnTimeChann <- NewEventGroup(t, tlc.events)
 			for key, _ := range tlc.events {
 				tlc.events[key] = 0
 			}

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/dghubble/go-twitter/twitter"
@@ -40,7 +39,7 @@ func (ts *TwitterStream) Listen() {
 		log.Panic("Error!!!", err)
 	}
 
-	fmt.Println("Waiting for messages about ", ts.tracks)
+	log.Println("! Listen to messages about ", ts.tracks)
 	for {
 		select {
 		case message := <-stream.Messages:

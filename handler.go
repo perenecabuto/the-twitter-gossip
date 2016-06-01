@@ -7,6 +7,34 @@ import (
 	"strings"
 )
 
+type EventGroupPayload struct {
+	Gossip    string         `json:"gossip"`
+	Timestamp int64          `json:"timestamp"`
+	Events    map[string]int `json:"events"`
+}
+
+type GossipEventHistoryPayload struct {
+	Gossip  string               `json:"gossip"`
+	History []*EventGroupPayload `json:"history"`
+}
+
+func (p *GossipEventHistoryPayload) FromModelList(gossipLabel string, list []*GossipClassifierEvent) {
+	history := []*EventGroupPayload{}
+	var eventGroup *EventGroupPayload
+	for _, e := range list {
+		if eventGroup == nil {
+			eventGroup = &EventGroupPayload{gossipLabel, e.Timestamp.Unix(), map[string]int{}}
+		}
+		if e.Timestamp.Unix() != eventGroup.Timestamp {
+			history = append(history, eventGroup)
+			eventGroup = nil
+			continue
+		}
+		eventGroup.Events[e.Label] = e.Value
+	}
+	p.History = history
+}
+
 type GossipPayload struct {
 	Gossip      string              `json:"gossip"`
 	Subjects    []string            `json:"subjects"`
@@ -53,6 +81,8 @@ func (h *GossipResourceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 			h.StartWorker(gossip, w, r)
 		} else if action == "stop" {
 			h.StopWorker(gossip, w, r)
+		} else if action == "history" {
+			h.ClassifierHistory(gossip, w, r)
 		} else {
 			h.Get(gossip, w, r)
 		}
@@ -103,7 +133,7 @@ func (h *GossipResourceHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	log.Println("POST", payload)
 	gossip, classifiers := payload.ToModel()
-	if err := h.service.Save(gossip, classifiers); err != nil {
+	if err := h.service.SaveGossip(gossip, classifiers); err != nil {
 		log.Println(err)
 		http.Error(w, err.Error(), 500)
 		return
@@ -127,6 +157,26 @@ func (h *GossipResourceHandler) StartWorker(gossipLabel string, w http.ResponseW
 func (h *GossipResourceHandler) StopWorker(gossipLabel string, w http.ResponseWriter, r *http.Request) {
 	go h.pool.StopWorker(WorkerID(gossipLabel))
 	h.Get(gossipLabel, w, r)
+}
+
+func (h *GossipResourceHandler) ClassifierHistory(gossipLabel string, w http.ResponseWriter, r *http.Request) {
+	events, err := h.service.FindClassifiersEvents(gossipLabel)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+
+	payload := &GossipEventHistoryPayload{gossipLabel, nil}
+	payload.FromModelList(gossipLabel, events)
+
+	response, err := json.Marshal(payload)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	w.Write([]byte(response))
 }
 
 func (h *GossipResourceHandler) buildGossipPayload(g *Gossip) *GossipPayload {

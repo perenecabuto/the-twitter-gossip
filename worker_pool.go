@@ -7,14 +7,14 @@ type WorkerID string
 type GossipWorkerPool struct {
 	pool      map[WorkerID]*GossipWorker
 	stopChann chan WorkerID
-	callback  func(p *GossipEventPayload)
+	callback  func(p *GossipEventGroup)
 }
 
 func NewGossipWorkerPool() *GossipWorkerPool {
 	return &GossipWorkerPool{make(map[WorkerID]*GossipWorker), make(chan WorkerID), nil}
 }
 
-func (gwp *GossipWorkerPool) OnEvent(callback func(p *GossipEventPayload)) {
+func (gwp *GossipWorkerPool) OnEvent(callback func(p *GossipEventGroup)) {
 	gwp.callback = callback
 }
 
@@ -60,7 +60,6 @@ func (gwp *GossipWorkerPool) RemoveWorker(id WorkerID) {
 func (gwp GossipWorkerPool) StartAll() {
 	log.Println("Starting ", len(gwp.pool), " workers")
 	for id, _ := range gwp.pool {
-		log.Println("")
 		go gwp.StartWorker(id)
 	}
 }

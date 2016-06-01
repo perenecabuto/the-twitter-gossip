@@ -19,11 +19,11 @@ type GossipClassifier struct {
 	Patterns []string
 }
 
-type GossipEvent struct {
+type GossipClassifierEvent struct {
 	ID         bson.ObjectId `bson:"_id,omitempty",json:"-"`
 	GossipId   bson.ObjectId
-	Name       string
-	Value      string
+	Label      string
+	Value      int
 	Annotation string
 	Timestamp  time.Time
 }

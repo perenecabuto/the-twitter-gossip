@@ -11,7 +11,9 @@ type GossipService interface {
 	FindAllGossip() ([]*Gossip, error)
 	FindGossipByLabel(label string) (*Gossip, error)
 	FindClassifiersByGossip(g *Gossip) ([]*GossipClassifier, error)
-	Save(g *Gossip, c []*GossipClassifier) error
+	FindClassifiersEvents(label string) ([]*GossipClassifierEvent, error)
+	SaveGossip(g *Gossip, c []*GossipClassifier) error
+	SaveEvent(e *GossipClassifierEvent) error
 }
 
 type MongoGossipService struct {
@@ -19,6 +21,7 @@ type MongoGossipService struct {
 	dbName       string
 	gossipC      *mgo.Collection
 	classifiersC *mgo.Collection
+	eventsC      *mgo.Collection
 }
 
 func NewMongoGossipService() *MongoGossipService {
@@ -36,9 +39,9 @@ func NewMongoGossipService() *MongoGossipService {
 	}
 
 	classifiersC := s.DB(dbName).C("gossip_classifiers")
+	eventsC := s.DB(dbName).C("gossip_classifier_events")
 
-	log.Println(dbName)
-	return &MongoGossipService{s, dbName, gossipC, classifiersC}
+	return &MongoGossipService{s, dbName, gossipC, classifiersC, eventsC}
 }
 
 func (s *MongoGossipService) FindAllGossip() ([]*Gossip, error) {
@@ -62,7 +65,7 @@ func (s *MongoGossipService) FindClassifiersByGossip(g *Gossip) ([]*GossipClassi
 	return results, err
 }
 
-func (s *MongoGossipService) Save(g *Gossip, classifiers []*GossipClassifier) error {
+func (s *MongoGossipService) SaveGossip(g *Gossip, classifiers []*GossipClassifier) error {
 	var err error
 	var found *Gossip
 	if found, err = s.FindGossipByLabel(g.Label); found != nil && err == nil {
@@ -73,7 +76,6 @@ func (s *MongoGossipService) Save(g *Gossip, classifiers []*GossipClassifier) er
 		err = s.gossipC.Insert(g)
 		found, err = s.FindGossipByLabel(g.Label)
 	}
-
 	if err != nil {
 		panic(err)
 	}
@@ -90,55 +92,21 @@ func (s *MongoGossipService) Save(g *Gossip, classifiers []*GossipClassifier) er
 	return nil
 }
 
-// DUMMY
-type DummyGossipService struct{}
+func (s *MongoGossipService) SaveEvent(e *GossipClassifierEvent) error {
+	return s.eventsC.Insert(e)
+}
 
-func (s *DummyGossipService) FindAllGossip() ([]*Gossip, error) {
-	result := []*Gossip{}
-	labels := []string{"cartola", "example", "problema", "fofoca"}
-	for _, l := range labels {
-		g, _ := s.FindGossipByLabel(l)
-		result = append(result, g)
+func (s *MongoGossipService) FindClassifiersEvents(label string) ([]*GossipClassifierEvent, error) {
+	g, err := s.FindGossipByLabel(label)
+	if err != nil {
+		return nil, err
 	}
+
+	result := []*GossipClassifierEvent{}
+	err = s.eventsC.Find(bson.M{"gossipid": g.ID}).Limit(30).Sort("-timestamp").All(&result)
+	if err != nil {
+		return nil, err
+	}
+
 	return result, nil
-}
-
-func (s *DummyGossipService) FindGossipByLabel(label string) (*Gossip, error) {
-	gossip := &Gossip{
-		Label:    label,
-		Subjects: []string{label},
-	}
-
-	return gossip, nil
-}
-
-func (s *DummyGossipService) FindClassifiersByGossip(g *Gossip) ([]*GossipClassifier, error) {
-	return []*GossipClassifier{
-		&GossipClassifier{Label: "Anything", Patterns: []string{
-			".*",
-		}},
-		&GossipClassifier{Label: "Bad", Patterns: []string{
-			"x",
-			"corrup",
-			"defeito",
-			"porra",
-			"problema",
-			"login",
-			"odeio",
-			"raiva",
-		}},
-		&GossipClassifier{Label: "Good", Patterns: []string{
-			"legal",
-			"bem",
-			"indo bem",
-			"bom",
-			"gostei",
-			"foda",
-		}},
-	}, nil
-}
-
-func (s *DummyGossipService) Save(g *Gossip, c []*GossipClassifier) error {
-	log.Printf("Save %v %+v\n", g, c)
-	return nil
 }
