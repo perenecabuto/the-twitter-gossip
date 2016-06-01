@@ -26,7 +26,6 @@ type TwitterStream struct {
 }
 
 func NewTwitterStream(tracks []string) *TwitterStream {
-
 	return &TwitterStream{tracks, []TwitterStreamListener{}, make(chan bool)}
 }
 
@@ -47,10 +46,8 @@ func (ts *TwitterStream) Listen() {
 		case message := <-stream.Messages:
 			tweet, ok := message.(*twitter.Tweet)
 			if ok {
-				for _, listener := range ts.listeners {
-					go func(l TwitterStreamListener) {
-						go l.OnTweet(tweet)
-					}(listener)
+				for _, l := range ts.listeners {
+					go l.OnTweet(tweet)
 				}
 			}
 		case <-ts.stopChann:

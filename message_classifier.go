@@ -29,8 +29,6 @@ func (mc *MessageClassifier) Matches(message string) bool {
 	return false
 }
 
-type ClassifierMatchCallback func(label string, t *twitter.Tweet)
-
 type MessageClassifierListener struct {
 	classifiers  []*MessageClassifier
 	inputChann   chan *twitter.Tweet

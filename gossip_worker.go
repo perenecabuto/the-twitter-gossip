@@ -73,9 +73,9 @@ func (gw *GossipWorker) run() {
 
 		case events := <-gw.timeCounter.OnTimeChann:
 			log.Println("Gossip:", gw.gossip.Label, "Events:", events)
-			//if len(events) > 0 {
-			gw.EventChann <- &GossipEventPayload{gw.gossip.Label, events}
-			//}
+			if len(events) > 0 {
+				gw.EventChann <- &GossipEventPayload{gw.gossip.Label, events}
+			}
 
 		case label := <-gw.listener.OnMatchChann:
 			go gw.timeCounter.ReportEvent(label)
