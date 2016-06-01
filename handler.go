@@ -11,6 +11,7 @@ type GossipPayload struct {
 	Gossip      string              `json:"gossip"`
 	Subjects    []string            `json:"subjects"`
 	Classifiers map[string][]string `json:"classifiers"`
+	WorkerState string              `json:"state"`
 }
 
 func (p *GossipPayload) ToModel() (*Gossip, []*GossipClassifier) {

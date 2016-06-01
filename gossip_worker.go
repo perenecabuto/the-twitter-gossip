@@ -5,58 +5,84 @@ import (
 	"time"
 )
 
-const DEFAULT_INTERVAL = 10 * time.Second
+const DEFAULT_INTERVAL = 1 * time.Second
 
 type GossipEventPayload struct {
 	Gossip string     `json:"gossip"`
 	Events EventGroup `json:"events"`
 }
 
+type GossipWorkerState string
+
+const (
+	STARTED  GossipWorkerState = "STARTED"
+	STARTING                   = "STARTING"
+	STOPPING                   = "STOPPING"
+	STOPPED                    = "STOPPED"
+)
+
 type GossipWorker struct {
-	gossip     *Gossip
-	stream     *TwitterStream
-	worker     *TimedLabelCounter
-	listener   *MessageClassifierListener
-	stopChann  chan bool
-	EventChann chan *GossipEventPayload
+	gossip      *Gossip
+	stream      *TwitterStream
+	timeCounter *TimedLabelCounter
+	listener    *MessageClassifierListener
+	State       GossipWorkerState
+	stopChann   chan bool
+	startChann  chan bool
+	EventChann  chan *GossipEventPayload
 }
 
 func NewGossipWorker(gossip *Gossip, gossipClassifiers []*GossipClassifier) *GossipWorker {
 	log.Println("Listenning Gossip: ", gossip.Label)
 	stream := NewTwitterStream(gossip.Subjects)
 	classifiers := ConvertMessageClassifiers(gossipClassifiers)
-	worker := NewTimedLabelCounter(DEFAULT_INTERVAL)
+	timeCounter := NewTimedLabelCounter(DEFAULT_INTERVAL)
 	listener := NewMessageClassifierListener(classifiers)
 	stream.AddListener(listener)
 
-	return &GossipWorker{gossip, stream, worker, listener, make(chan bool), make(chan *GossipEventPayload)}
+	return &GossipWorker{gossip, stream, timeCounter, listener, STOPPED, make(chan bool), make(chan bool), make(chan *GossipEventPayload)}
 }
 
 func (gw *GossipWorker) Start() {
-	go gw.stream.Listen()
-	go gw.worker.Start()
-	gw.run()
+	if gw.State == STOPPED {
+		gw.State = STARTING
+		go gw.run()
+		gw.startChann <- true
+		<-gw.startChann
+		gw.State = STARTED
+	}
 }
 
 func (gw *GossipWorker) Stop() {
-	gw.stopChann <- true
-	<-gw.stopChann
+	if gw.State == STARTED {
+		gw.State = STOPPING
+		gw.stopChann <- true
+		<-gw.stopChann
+		gw.State = STOPPED
+	}
 }
 
 func (gw *GossipWorker) run() {
-	log.Println(gw.gossip.Label+":", "worker started")
 	for {
 		select {
-		case events := <-gw.worker.OnTimeChann:
+		case <-gw.startChann:
+			log.Println("! Starting GossipWorker:", gw.gossip.Label)
+			go gw.stream.Listen()
+			go gw.timeCounter.Start()
+			gw.startChann <- true
+
+		case events := <-gw.timeCounter.OnTimeChann:
 			log.Println("Gossip:", gw.gossip.Label, "Events:", events)
-			if len(events) > 0 {
-				gw.EventChann <- &GossipEventPayload{gw.gossip.Label, events}
-			}
+			//if len(events) > 0 {
+			gw.EventChann <- &GossipEventPayload{gw.gossip.Label, events}
+			//}
+
 		case label := <-gw.listener.OnMatchChann:
-			go gw.worker.ReportEvent(label)
+			go gw.timeCounter.ReportEvent(label)
+
 		case <-gw.stopChann:
 			log.Println("! Stopping GossipWorker:", gw.gossip.Label)
-			gw.worker.Stop()
+			gw.timeCounter.Stop()
 			gw.stream.Stop()
 			gw.stopChann <- true
 			return
