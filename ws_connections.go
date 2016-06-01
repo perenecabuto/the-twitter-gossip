@@ -36,6 +36,6 @@ func (wsc *WSConnections) BroadcastJSON(payload interface{}) {
 
 func (wsc *WSConnections) ListenBroadcasts() {
 	for payload := range wsc.BroadcastChann {
-		wsc.BroadcastJSON(payload)
+		go wsc.BroadcastJSON(payload)
 	}
 }

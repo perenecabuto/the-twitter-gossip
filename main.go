@@ -13,40 +13,33 @@ import (
 
 func main() {
 	service := &DummyGossipService{}
-	connections := NewWSConnections()
+	wsClients := NewWSConnections()
 	//service := NewMongoGossipService()
 	workerPool := NewGossipWorkerPool()
+	workerPool.OnEvent(func(p *GossipEventPayload) {
+		wsClients.BroadcastChann <- p
+	})
 
-	StopAllWorkersAtExit(workerPool)
 	gossips, _ := service.FindAllGossip()
 	for _, gossip := range gossips {
 		classifiers, _ := service.FindClassifiersByGossip(gossip)
-		workerPool.BuildWorker(gossip.Label, gossip, classifiers)
-		go workerPool.StartWorker(gossip.Label)
+		workerPool.BuildWorker(WorkerID(gossip.Label), gossip, classifiers)
+		go workerPool.StartWorker(WorkerID(gossip.Label))
 	}
 
 	http.Handle("/gossip/", CorsMiddleware(&GossipResourceHandler{service}))
 	http.Handle("/events", websocket.Handler(func(ws *websocket.Conn) {
 		log.Println("New WS connection")
-		defer connections.Remove(ws)
-		connections.Add(ws)
+		defer wsClients.Remove(ws)
+		wsClients.Add(ws)
 		io.Copy(ws, ws)
 	}))
 
-	BroadcastWorkerPoolEvents(workerPool, connections)
-
-	go connections.ListenBroadcasts()
+	go StopAllWorkersAtExit(workerPool)
+	go wsClients.ListenBroadcasts()
 	err := http.ListenAndServe(":8000", nil)
 	if err != nil {
 		panic("ListenAndServe: " + err.Error())
-	}
-}
-
-func BroadcastWorkerPoolEvents(p *GossipWorkerPool, c *WSConnections) {
-	for msg := range p.EventChann {
-		go func() {
-			c.BroadcastChann <- interface{}(msg)
-		}()
 	}
 }
 
