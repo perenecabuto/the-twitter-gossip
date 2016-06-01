@@ -1,9 +1,8 @@
 var React = require('react');
 var ReactDOM = require('react-dom');
-var mqtt = require('mqtt');
-var AreaChart = require('react-d3-basic').AreaChart;
-var LineChart = require('react-d3-basic').LineChart;
 var ajar = require('ajar');
+var nv = require('nvd3');
+
 
 var serviceURL = window.location.hostname + ":8000";
 
@@ -24,7 +23,6 @@ var MessageManager = (function() {
         }
 
         webSocket.onmessage = function(event) {
-            console.log("onmessage");
             var data = JSON.parse(event.data);
             for (var i in listeners) {
                 listeners[i](data);
@@ -40,6 +38,7 @@ var MessageManager = (function() {
         }
     };
 })();
+
 
 var GossipForm = React.createClass({
     getInitialState: function() {
@@ -125,11 +124,11 @@ var GossipForm = React.createClass({
     }
 });
 
+
 var MultLineChartBox = React.createClass({
     getInitialState: function() {
         return {
             maxItems: 20,
-            chartSeries: [],
             data: []
         };
     },
@@ -142,24 +141,66 @@ var MultLineChartBox = React.createClass({
         return color;
     },
     renderChart: function() {
-        setTimeout(function() {
-            ReactDOM.render(
-                <div style={{marginLeft: "-10%"}}>
-                    <LineChart
-                        width={520}
-                        height={200}
-                        xScale={"time"}
-                        data={this.state.data}
-                        chartSeries={this.state.chartSeries}
-                        x={(d) => d.index}
-                    />
-                </div>, this._el);
+        var tickMultiFormat = d3.time.format.multi([
+            ["%H:%M:%S", function(d) { return d.getMinutes() == 0; }],
+            ["%M:%S", function(d) { return d.getSeconds() == 0; }],
+            [":%S", function(d) { return true; }],
+        ]);
+
+        var that = this;
+        console.log("renderChart");
+        nv.addGraph(function() {
+            var chart = nv.models.lineChart().options({
+                duration: 300
+            });
+
+            chart.xAxis
+            .axisLabel("Time")
+            .tickFormat(function(d) {
+                return tickMultiFormat(new Date(d));
+            });
+
+            chart.yAxis
+            .axisLabel('Hits')
+            .tickFormat(function(d) {
+                if (d == null) {
+                    return 'N/A';
+                }
+                return d3.format(',.2i')(d);
+            });
+
+            d3.select(this._el).datum(this.state.data).call(chart);
+            nv.utils.windowResize(chart.update);
+
+            that.chart = chart;
+            return chart;
         }.bind(this));
     },
+    addFieldValue: function(field, value) {
+        var data = this.state.data;
+        var fieldData;
+        for (var i in data) {
+            if (data[i].key === field) {
+                fieldData = data[i];
+                break;
+            }
+        }
+
+        if (fieldData === undefined) {
+            fieldData = {key: field, values: [], color: this.getRandomColor()};
+            data.push(fieldData);
+        }
+
+        if (fieldData.values.length >= this.state.maxItems) {
+            fieldData.values.shift();
+        }
+
+        fieldData.values.push(value);
+    },
     componentDidMount: function() {
-        var chartSeries = this.state.chartSeries;
+        this.renderChart();
         if (this.props.topValue) {
-            chartSeries.push({field: "top", name: "", color: "transparent"});
+            this.state.data.push({field: "top", key: "", color: "transparent", values: []});
         }
 
         MessageManager.onMessage(function(message) {
@@ -167,36 +208,19 @@ var MultLineChartBox = React.createClass({
                 return;
             }
 
-            var item = {key: 'key', index: new Date()};
             if (this.props.topValue) {
-                item.top = this.props.topValue;
+                this.addFieldValue("top", this.props.topValue);
             }
 
             for (var key in message.events) {
-                var alreadyInChart = false;
-                for (var i in chartSeries) {
-                    alreadyInChart = alreadyInChart || chartSeries[i].field == key;
-                    item[key] = message.events[key];
-                }
-                if (!alreadyInChart) {
-                   chartSeries.push({field: key, name: key, color: this.getRandomColor()});
-               }
+                this.addFieldValue(key, {x: new Date().getTime(), y: message.events[key]});
             }
 
-            var data = this.state.data || [];
-            if (data.length == this.state.maxItems) {
-                data.shift();
-            }
-            data.push(item);
-
-            this.setState({data: data, chartSeries: chartSeries});
-            this.renderChart.call(this);
+            this.chart.update();
         }.bind(this));
     },
     render: function() {
-        return (
-        <div className="panel-body" ref={(ref) => this._el = ref}>no data</div>
-        );
+        return (<svg style={{height: '300px', width: '100%'}} ref={(ref) => this._el = ref}></svg>);
     }
 });
 
@@ -211,12 +235,12 @@ var GossipPanel = React.createClass({
     },
     stopWorker: function() {
         ajar.get(location.protocol + "//" + serviceURL + "/gossip/" + this.props.gossip + "/stop").then(function(data) {
-            alert("Worker state ": data.state);
+            alert("Worker state "+ data.state);
         }.bind(this));
     },
     startWorker: function() {
         ajar.get(location.protocol + "//" + serviceURL + "/gossip/" + this.props.gossip + "/start").then(function() {
-            alert("Worker state ": data.state);
+            alert("Worker state "+ data.state);
         }.bind(this));
     },
     render: function() {
