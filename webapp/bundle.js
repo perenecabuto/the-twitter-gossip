@@ -319,7 +319,8 @@
 	    render: function render() {
 	        var _this2 = this;
 
-	        return React.createElement('svg', { style: { height: '300px', width: '100%' }, ref: function ref(_ref) {
+	        this.renderChart();
+	        return React.createElement('svg', { style: { height: '100%', width: '100%' }, ref: function ref(_ref) {
 	                return _this2._el = _ref;
 	            } });
 	    }
@@ -382,7 +383,7 @@
 	                ),
 	                React.createElement(
 	                    'div',
-	                    { className: 'panel-body' },
+	                    { className: 'panel-body', style: { height: '300px' } },
 	                    template
 	                )
 	            )
