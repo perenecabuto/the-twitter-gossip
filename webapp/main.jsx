@@ -134,12 +134,17 @@ var MultLineChartBox = React.createClass({
         };
     },
     getRandomColor: function() {
-        var letters = '0123456789ABCDEF'.split('');
-        var color = '#';
-        for (var i = 0; i < 6; i++ ) {
-            color += letters[Math.floor(Math.random() * 16)];
-        }
-        return color;
+        this.colorCount = this.colorCount || 0;
+        var colors = [
+            '#3B7A57',
+            '#00C4B0',
+            '#FFBF00',
+            '#FF7E00',
+            '#FF033E',
+            '#9966CC',
+            '#A4C639'
+        ]
+        return colors[this.colorCount++];
     },
     renderChart: function() {
         setTimeout(function() {
@@ -201,10 +206,8 @@ var MultLineChartBox = React.createClass({
             item[key] = gossipEvent.events[key];
         }
 
-        //console.log(item);
-
         var data = this.state.data || [];
-        if (data.length == this.state.maxItems) {
+        if (data.length >= this.state.maxItems) {
             data.shift();
         }
         data.push(item);
@@ -220,7 +223,7 @@ var MultLineChartBox = React.createClass({
 var GossipPanel = React.createClass({
     getInitialState: function() {
         return {
-            edit: false
+            edit: this.props.gossip === undefined
         };
     },
     toggleTemplate: function() {
@@ -268,8 +271,7 @@ var App = React.createClass({
         };
     },
     componentDidMount: function() {
-        ajar.get(location.protocol + "//" + serviceURL + "/gossip/")
-            .then(function(data) {
+        ajar.get(location.protocol + "//" + serviceURL + "/gossip/").then(function(data) {
                 for (var i in data.gossips) {
                     var item = data.gossips[i];
                     if (this.state.gossips[item.gossip] === undefined) {
@@ -278,6 +280,7 @@ var App = React.createClass({
                 }
                 this.setState({gossips: this.state.gossips});
             }.bind(this));
+
         MessageManager.onMessage(function(message) {
             if (this.state.gossips[message.gossip] === undefined) {
                 this.state.gossips[message.gossip] = true;
@@ -286,10 +289,13 @@ var App = React.createClass({
         }.bind(this));
 
     },
+    addGossip: function() {
+    },
     render: function() {
         return (
         <div className="container">
             <h1>Dashboard</h1>
+            <button type="button" className="btn" onClick={this.addGossip}>New gossip</button>
             <div className="row" ref={(ref) => this._el = ref}>
                 {Object.keys(this.state.gossips).map(function(gossip) {
                     return (<GossipPanel gossip={gossip} />)

@@ -223,12 +223,9 @@
 	        };
 	    },
 	    getRandomColor: function getRandomColor() {
-	        var letters = '0123456789ABCDEF'.split('');
-	        var color = '#';
-	        for (var i = 0; i < 6; i++) {
-	            color += letters[Math.floor(Math.random() * 16)];
-	        }
-	        return color;
+	        this.colorCount = this.colorCount || 0;
+	        var colors = ['#3B7A57', '#00C4B0', '#FFBF00', '#FF7E00', '#FF033E', '#9966CC', '#A4C639'];
+	        return colors[this.colorCount++];
 	    },
 	    renderChart: function renderChart() {
 	        setTimeout(function () {
@@ -292,10 +289,8 @@
 	            item[key] = gossipEvent.events[key];
 	        }
 
-	        //console.log(item);
-
 	        var data = this.state.data || [];
-	        if (data.length == this.state.maxItems) {
+	        if (data.length >= this.state.maxItems) {
 	            data.shift();
 	        }
 	        data.push(item);
@@ -319,7 +314,7 @@
 
 	    getInitialState: function getInitialState() {
 	        return {
-	            edit: false
+	            edit: this.props.gossip === undefined
 	        };
 	    },
 	    toggleTemplate: function toggleTemplate() {
@@ -397,6 +392,7 @@
 	            }
 	            this.setState({ gossips: this.state.gossips });
 	        }.bind(this));
+
 	        MessageManager.onMessage(function (message) {
 	            if (this.state.gossips[message.gossip] === undefined) {
 	                this.state.gossips[message.gossip] = true;
@@ -404,6 +400,7 @@
 	            this.setState({ gossips: this.state.gossips });
 	        }.bind(this));
 	    },
+	    addGossip: function addGossip() {},
 	    render: function render() {
 	        var _this3 = this;
 
@@ -414,6 +411,11 @@
 	                'h1',
 	                null,
 	                'Dashboard'
+	            ),
+	            React.createElement(
+	                'button',
+	                { type: 'button', className: 'btn', onClick: this.addGossip },
+	                'New gossip'
 	            ),
 	            React.createElement(
 	                'div',
