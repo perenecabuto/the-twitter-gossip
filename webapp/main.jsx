@@ -118,7 +118,7 @@ var GossipForm = React.createClass({
                 onChange={(e) => this.setState({'classifiers': e.target.value}) } />
             </div>
 
-            <button type="submit" className="btn btn-default">Save</button>
+            <button type="submit" className="btn btn-default pull-right">Save</button>
         </form>
         );
     }
