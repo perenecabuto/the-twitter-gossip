@@ -202,7 +202,7 @@
 	            ),
 	            React.createElement(
 	                'button',
-	                { type: 'submit', className: 'btn btn-default' },
+	                { type: 'submit', className: 'btn btn-default pull-right' },
 	                'Save'
 	            )
 	        );
