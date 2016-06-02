@@ -271,10 +271,33 @@
 
 	        fieldData.values.push(value);
 	    },
+	    loadInitialData: function loadInitialData() {
+	        ajar.get(location.protocol + "//" + serviceURL + "/gossip/" + this.props.gossip + "/history").then(function (data) {
+	            var history = data.history;
+	            if (history === undefined || history.length == 0) {
+	                return;
+	            }
+
+	            history.reverse();
+	            for (var i in history) {
+	                var timestamp = history[i].timestamp * 1000;
+	                for (var key in history[i].events) {
+	                    this.addFieldValue(key, { x: timestamp, y: history[i].events[key] });
+	                }
+	            }
+
+	            if (this.chart != undefined) {
+	                this.chart.update();
+	            }
+	        }.bind(this));
+	    },
 	    componentDidMount: function componentDidMount() {
-	        this.renderChart();
 	        if (this.props.topValue) {
 	            this.state.data.push({ field: "top", key: "", color: "transparent", values: [] });
+	        }
+
+	        if (this.props.gossip) {
+	            this.loadInitialData();
 	        }
 
 	        MessageManager.onMessage(function (message) {
