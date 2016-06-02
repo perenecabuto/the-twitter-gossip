@@ -152,32 +152,19 @@ var MultLineChartBox = React.createClass({
             [":%S", function(d) { return true; }],
         ]);
 
-        var that = this;
-        console.log("renderChart");
         nv.addGraph(function() {
-            var chart = nv.models.lineChart().options({
-                duration: 300
-            });
+            var chart = nv.models.lineChart().options({duration: 300});
+            nv.utils.windowResize(chart.update);
 
-            chart.xAxis
-            .axisLabel("Time")
+            chart.yAxis.axisLabel('Hits');
+            chart.xAxis.axisLabel("Time")
             .tickFormat(function(d) {
                 return tickMultiFormat(new Date(d));
             });
 
-            chart.yAxis
-            .axisLabel('Hits')
-            .tickFormat(function(d) {
-                if (d == null) {
-                    return 'N/A';
-                }
-                return d3.format(',.2i')(d);
-            });
-
             d3.select(this._el).datum(this.state.data).call(chart);
-            nv.utils.windowResize(chart.update);
 
-            that.chart = chart;
+            this.chart = chart;
             return chart;
         }.bind(this));
     },
