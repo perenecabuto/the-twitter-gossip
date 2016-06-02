@@ -103,7 +103,7 @@ func (s *MongoGossipService) FindClassifiersEvents(label string) ([]*GossipClass
 	}
 
 	result := []*GossipClassifierEvent{}
-	err = s.eventsC.Find(bson.M{"gossipid": g.ID}).Limit(30).Sort("-timestamp").All(&result)
+	err = s.eventsC.Find(bson.M{"gossipid": g.ID}).Limit(50).Sort("-timestamp").All(&result)
 	if err != nil {
 		return nil, err
 	}
