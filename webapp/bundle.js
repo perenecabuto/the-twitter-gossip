@@ -260,6 +260,9 @@
 	        if (fieldData === undefined) {
 	            fieldData = { key: field, values: [], color: this.getRandomColor() };
 	            data.push(fieldData);
+	            data.sort(function (a, b) {
+	                return a.key < b.key ? -1 : a.key > b.key ? 1 : 0;
+	            });
 	        }
 
 	        if (fieldData.values.length >= this.state.maxItems) {
