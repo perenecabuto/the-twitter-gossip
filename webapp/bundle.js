@@ -440,7 +440,7 @@
 	                        return _this3._el = _ref2;
 	                    } },
 	                Object.keys(this.state.gossips).map(function (gossip) {
-	                    return React.createElement(GossipPanel, { gossip: gossip });
+	                    return React.createElement(GossipPanel, { key: gossip, gossip: gossip });
 	                })
 	            )
 	        );
