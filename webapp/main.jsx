@@ -1,10 +1,12 @@
 var React = require('react');
 var ReactDOM = require('react-dom');
+var Modal = require('react-modal');
 var ajar = require('ajar');
 var nv = require('nvd3');
 
 
 var serviceURL = window.location.hostname + ":8000";
+
 
 var MessageManager = (function() {
     var webSocket;
@@ -94,8 +96,11 @@ var GossipForm = React.createClass({
             classifiers: this.getClassifiersPayload()
         };
         ajar.post(location.protocol + "//" + serviceURL + "/gossip/", payload).then(function(data) {
+            if (this.props.onSave) {
+                this.props.onSave(data);
+            }
             alert("gossip saved successfully");
-        });
+        }.bind(this));
     },
     render: function() {
         return (
@@ -118,7 +123,10 @@ var GossipForm = React.createClass({
                 onChange={(e) => this.setState({'classifiers': e.target.value}) } />
             </div>
 
-            <button type="submit" className="btn btn-default pull-right">Save</button>
+            <div className="btn-group pull-right">
+                <button type="button" className="btn btn-default" onClick={this.props.onCancel}>Cancel</button>
+                <button type="submit" className="btn btn-primary">Save</button>
+            </div>
         </form>
         );
     }
@@ -147,9 +155,9 @@ var MultLineChartBox = React.createClass({
     },
     renderChart: function() {
         var tickMultiFormat = d3.time.format.multi([
-            ["%H:%M:%S", function(d) { return d.getMinutes() == 0; }],
-            ["%M:%S", function(d) { return d.getSeconds() == 0; }],
-            [":%S", function(d) { return true; }],
+            ["%H:%M:%S", (d) => d.getMinutes() == 0 ],
+            ["%M:%S", (d) => d.getSeconds() == 0 ],
+            [":%S", (d) => true ],
         ]);
 
         nv.addGraph(function() {
@@ -181,9 +189,7 @@ var MultLineChartBox = React.createClass({
         if (fieldData === undefined) {
             fieldData = {key: field, values: [], color: this.getRandomColor()};
             data.push(fieldData);
-            data.sort(function(a, b) {
-                return a.key < b.key ? -1 : (a.key > b.key ? 1 : 0);
-            });
+            data.sort((a, b) => a.key < b.key ? -1 : (a.key > b.key ? 1 : 0));
         }
 
         if (fieldData.values.length >= this.state.maxItems) {
@@ -219,6 +225,7 @@ var MultLineChartBox = React.createClass({
     }
 });
 
+
 var GossipPanel = React.createClass({
     getInitialState: function() {
         return {
@@ -249,10 +256,13 @@ var GossipPanel = React.createClass({
         <div className="pull-left col-xs-12 col-sm-8 col-md-6 col-lg-6">
             <div className="panel panel-default">
                 <div className="panel-heading">
-                    Gossip: {this.props.gossip}
-                    <button type="button" className="pull-right" onClick={this.startWorker}>Start</button>
-                    <button type="button" className="pull-right" onClick={this.stopWorker}>Stop</button>
-                    <button type="button" className="pull-right" onClick={this.toggleTemplate}>Edit</button>
+                    <span>Gossip: {this.props.gossip}</span>
+
+                    <div className="btn-group pull-right" style={{marginRight: '-10px', marginTop: '-5px'}} role="toolbar">
+                        <button type="button" className="btn btn-sm btn-default" onClick={this.startWorker}>Start</button>
+                        <button type="button" className="btn btn-sm btn-default" onClick={this.stopWorker}>Stop</button>
+                        <button type="button" className="btn btn-sm btn-default" onClick={this.toggleTemplate}>Edit</button>
+                    </div>
                 </div>
                 <div className="panel-body">
                     {template}
@@ -263,41 +273,58 @@ var GossipPanel = React.createClass({
     }
 });
 
+
 var App = React.createClass({
     getInitialState: function() {
         return {
-            gossips: {}
+            gossips: []
         };
     },
     componentDidMount: function() {
         ajar.get(location.protocol + "//" + serviceURL + "/gossip/").then(function(data) {
-                for (var i in data.gossips) {
-                    var item = data.gossips[i];
-                    if (this.state.gossips[item.gossip] === undefined) {
-                        this.state.gossips[item.gossip] = true;
-                    }
-                }
-                this.setState({gossips: this.state.gossips});
-            }.bind(this));
-
-        MessageManager.onMessage(function(message) {
-            if (this.state.gossips[message.gossip] === undefined) {
-                this.state.gossips[message.gossip] = true;
-            }
-            this.setState({gossips: this.state.gossips});
+            data.gossips.reverse().map((g) => this.addGossip(g.gossip));
+            this.setState({});
         }.bind(this));
 
+        MessageManager.onMessage(function(message) {
+            this.addGossip(message.gossip);
+            this.setState({});
+        }.bind(this));
     },
-    addGossip: function() {
+    addGossip: function(gossip) {
+        var exists = Boolean(this.state.gossips.find((g) => g == gossip));
+        if (!exists) {
+            this.state.gossips.push(gossip);
+        }
+    },
+    showNewGossipForm: function() {
+        this.setState({showNewGossipForm: true});
+    },
+    onCancelNewGossip: function() {
+        this.setState({showNewGossipForm: false});
+    },
+    onSaveNewGossip: function(gossip) {
+        this.setState({showNewGossipForm: false});
+        this.state.gossips.unshift(gossip.gossip);
+        this.setState({});
     },
     render: function() {
         return (
         <div className="container">
             <h1>Dashboard</h1>
-            <button type="button" className="btn" onClick={this.addGossip}>New gossip</button>
+
+            <div className="toolbar" role="toolbar">
+                <button type="button" className="btn btn-default" onClick={this.showNewGossipForm}>New gossip</button>
+                <br /><br />
+            </div>
+
+            <Modal isOpen={this.state.showNewGossipForm}>
+                <GossipForm onSave={this.onSaveNewGossip} onCancel={this.onCancelNewGossip} />
+            </Modal>
+
             <div className="row" ref={(ref) => this._el = ref}>
-                {Object.keys(this.state.gossips).map(function(gossip) {
-                    return (<GossipPanel gossip={gossip} />)
+                {this.state.gossips.map(function(gossip) {
+                    return (<GossipPanel key={gossip} gossip={gossip} />)
                 })}
             </div>
         </div>

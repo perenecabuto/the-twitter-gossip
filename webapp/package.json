@@ -7,6 +7,7 @@
     "dependencies": {
         "react": "*",
         "react-dom": "*",
+        "react-modal": "*",
         "d3": "^3.5.6",
         "nvd3": "1.8.3",
         "body-parser": "^1.4.3",
