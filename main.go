@@ -11,7 +11,15 @@ import (
 	"golang.org/x/net/websocket"
 )
 
+var (
+	port = os.Getenv("PORT")
+)
+
 func main() {
+	if port == "" {
+		port = "8000"
+	}
+
 	//service := &DummyGossipService{}
 	wsClients := NewWSConnections()
 	service := NewMongoGossipService()
@@ -44,7 +52,7 @@ func main() {
 	go StopAllWorkersAtExit(workerPool)
 	go workerPool.StartAll()
 	go wsClients.ListenBroadcasts()
-	err := http.ListenAndServe(":8000", nil)
+	err := http.ListenAndServe(port, nil)
 	if err != nil {
 		panic("ListenAndServe: " + err.Error())
 	}

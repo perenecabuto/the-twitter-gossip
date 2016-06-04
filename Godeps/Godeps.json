@@ -1,0 +1,41 @@
+{
+	"ImportPath": "github.com/perenecabuto/the-twitter-gossip",
+	"GoVersion": "go1.6",
+	"Deps": [
+		{
+			"ImportPath": "github.com/cenkalti/backoff",
+			"Rev": "4dc77674aceaabba2c7e3da25d4c823edfb73f99"
+		},
+		{
+			"ImportPath": "github.com/dghubble/go-twitter/twitter",
+			"Rev": "057bb913e42697f48e57fc9599e50c978f6ac095"
+		},
+		{
+			"ImportPath": "github.com/dghubble/oauth1",
+			"Comment": "v0.2.0-4-gb976e49",
+			"Rev": "b976e493be28db57be393db34b4fc1a569f0459b"
+		},
+		{
+			"ImportPath": "github.com/dghubble/sling",
+			"Comment": "v1.0-12-gdae3211",
+			"Rev": "dae32115349f89dcfb306b4e1e4b42813c189b6a"
+		},
+		{
+			"ImportPath": "github.com/google/go-querystring/query",
+			"Rev": "6bb77fe6f42b85397288d4f6f67ac72f8f400ee7"
+		},
+		{
+			"ImportPath": "golang.org/x/net/context",
+			"Rev": "6dc0abcce25682504770fa9a7a6705bbfdebfa48"
+		},
+		{
+			"ImportPath": "golang.org/x/net/websocket",
+			"Rev": "6dc0abcce25682504770fa9a7a6705bbfdebfa48"
+		},
+		{
+			"ImportPath": "gopkg.in/mgo.v2",
+			"Comment": "r2015.01.24",
+			"Rev": "c6a7dce14133ccac2dcac3793f1d6e2ef048503a"
+		}
+	]
+}
