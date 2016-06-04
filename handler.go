@@ -42,6 +42,8 @@ func (h *GossipResourceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 		h.Create(w, r)
 	} else if r.Method == "PUT" {
 		h.Update(gossip, w, r)
+	} else if r.Method == "DELETE" {
+		h.Delete(gossip, w, r)
 	}
 }
 
@@ -61,7 +63,6 @@ func (h *GossipResourceHandler) List(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *GossipResourceHandler) Get(gossipLabel string, w http.ResponseWriter, r *http.Request) {
-	log.Println("GET", gossipLabel)
 	gossip, err := h.service.FindGossipByLabel(gossipLabel)
 	if gossip == nil {
 		http.NotFound(w, r)
@@ -85,7 +86,6 @@ func (h *GossipResourceHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Println("POST", payload)
 	gossip, classifiers := payload.ToModel()
 	if err := h.service.CreateGossip(gossip, classifiers); err != nil {
 		log.Println(err)
@@ -105,7 +105,6 @@ func (h *GossipResourceHandler) Update(gossipLabel string, w http.ResponseWriter
 		return
 	}
 
-	log.Println("PUT", payload)
 	gossip, classifiers := payload.ToModel()
 	if err := h.service.UpdateGossip(gossipLabel, gossip, classifiers); err != nil {
 		log.Println(err)
@@ -121,6 +120,17 @@ func (h *GossipResourceHandler) Update(gossipLabel string, w http.ResponseWriter
 	} else {
 		h.Get(gossip.Label, w, r)
 	}
+}
+
+func (h *GossipResourceHandler) Delete(gossipLabel string, w http.ResponseWriter, r *http.Request) {
+	h.pool.StopWorker(WorkerID(gossipLabel))
+	if err := h.service.RemoveGossip(gossipLabel); err != nil {
+		log.Println(err)
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	w.Write([]byte("{\"ok\": true}"))
 }
 
 func (h *GossipResourceHandler) StartWorker(gossipLabel string, w http.ResponseWriter, r *http.Request) {

@@ -14,6 +14,7 @@ type GossipService interface {
 	FindClassifiersEvents(label string) ([]*GossipClassifierEvent, error)
 	CreateGossip(g *Gossip, c []*GossipClassifier) error
 	UpdateGossip(gossipLabel string, g *Gossip, c []*GossipClassifier) error
+	RemoveGossip(gossipLabel string) error
 	SaveClassifiers(g *Gossip, c []*GossipClassifier) error
 	SaveEvent(e *GossipClassifierEvent) error
 }
@@ -89,6 +90,21 @@ func (s *MongoGossipService) UpdateGossip(gossipLabel string, g *Gossip, classif
 		return err
 	}
 	if err = s.SaveClassifiers(found, classifiers); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *MongoGossipService) RemoveGossip(gossipLabel string) error {
+	g, err := s.FindGossipByLabel(gossipLabel)
+	if err != nil {
+		return err
+	}
+
+	s.classifiersC.RemoveAll(bson.M{"gossipid": g.ID})
+	s.eventsC.RemoveAll(bson.M{"gossipid": g.ID})
+	err = s.gossipC.Remove(g)
+	if err != nil {
 		return err
 	}
 	return nil
