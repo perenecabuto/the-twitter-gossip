@@ -40,6 +40,8 @@ func (h *GossipResourceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 		}
 	} else if r.Method == "POST" {
 		h.Create(w, r)
+	} else if r.Method == "PUT" {
+		h.Update(gossip, w, r)
 	}
 }
 
@@ -85,7 +87,27 @@ func (h *GossipResourceHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	log.Println("POST", payload)
 	gossip, classifiers := payload.ToModel()
-	if err := h.service.SaveGossip(gossip, classifiers); err != nil {
+	if err := h.service.CreateGossip(gossip, classifiers); err != nil {
+		log.Println(err)
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	h.pool.BuildWorker(WorkerID(gossip.Label), gossip, classifiers)
+	h.Get(gossip.Label, w, r)
+}
+
+func (h *GossipResourceHandler) Update(gossipLabel string, w http.ResponseWriter, r *http.Request) {
+	payload := &GossipPayload{}
+	if err := json.NewDecoder(r.Body).Decode(payload); err != nil {
+		log.Println(err)
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	log.Println("PUT", payload)
+	gossip, classifiers := payload.ToModel()
+	if err := h.service.UpdateGossip(gossipLabel, gossip, classifiers); err != nil {
 		log.Println(err)
 		http.Error(w, err.Error(), 500)
 		return

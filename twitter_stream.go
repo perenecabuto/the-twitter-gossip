@@ -8,10 +8,8 @@ import (
 )
 
 var (
-	config     = oauth1.NewConfig("PtBsLxlPzwD39F1dfPsxxKfhL", "TMduA8ViNysuVaOztHk8yFGdj0VK6NWGDCrxe081bYd0QZyqYd")
-	token      = oauth1.NewToken("1018696039-nYjPFKCIB69nRoKMvUNrV5CzhJzKn0gbXEhshRe", "luYhEOT2Id0uhXcMz5a4cDcbAfhYefw4kXUvUsIQS8lZ2")
-	httpClient = config.Client(oauth1.NoContext, token)
-	client     = twitter.NewClient(httpClient)
+	config = oauth1.NewConfig("PtBsLxlPzwD39F1dfPsxxKfhL", "TMduA8ViNysuVaOztHk8yFGdj0VK6NWGDCrxe081bYd0QZyqYd")
+	token  = oauth1.NewToken("1018696039-nYjPFKCIB69nRoKMvUNrV5CzhJzKn0gbXEhshRe", "luYhEOT2Id0uhXcMz5a4cDcbAfhYefw4kXUvUsIQS8lZ2")
 )
 
 type TwitterStreamListener interface {
@@ -33,6 +31,8 @@ func (ts *TwitterStream) AddListener(listener TwitterStreamListener) {
 }
 
 func (ts *TwitterStream) Listen() {
+	httpClient := config.Client(oauth1.NoContext, token)
+	client := twitter.NewClient(httpClient)
 	params := &twitter.StreamFilterParams{Track: ts.tracks, StallWarnings: twitter.Bool(true)}
 	stream, err := client.Streams.Filter(params)
 	if err != nil {
