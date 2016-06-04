@@ -265,7 +265,7 @@ var GossipPanel = React.createClass({
         }.bind(this));
     },
     startWorker: function() {
-        ajar.get(location.protocol + "//" + serviceURL + "/gossip/" + this.props.gossip + "/start").then(function() {
+        ajar.get(location.protocol + "//" + serviceURL + "/gossip/" + this.props.gossip + "/start").then(function(data) {
             alert("Worker state " + data.state);
         }.bind(this));
     },
@@ -331,6 +331,7 @@ var App = React.createClass({
         this.setState({showNewGossipForm: false});
         this.state.gossips.unshift(gossip.gossip);
         this.setState({});
+        ajar.get(location.protocol + "//" + serviceURL + "/gossip/" + this.props.gossip + "/start");
     },
     render: function() {
         return (
