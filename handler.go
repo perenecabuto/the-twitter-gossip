@@ -7,54 +7,6 @@ import (
 	"strings"
 )
 
-type EventGroupPayload struct {
-	Gossip    string         `json:"gossip"`
-	Timestamp int64          `json:"timestamp"`
-	Events    map[string]int `json:"events"`
-}
-
-type GossipEventHistoryPayload struct {
-	Gossip  string               `json:"gossip"`
-	History []*EventGroupPayload `json:"history"`
-}
-
-type GossipPayload struct {
-	Gossip      string              `json:"gossip"`
-	Subjects    []string            `json:"subjects"`
-	Classifiers map[string][]string `json:"classifiers"`
-	WorkerState string              `json:"state"`
-}
-
-type GossipListPayload struct {
-	Gossips []*GossipPayload `json:"gossips"`
-}
-
-func (p *GossipEventHistoryPayload) FromModelList(gossipLabel string, list []*GossipClassifierEvent) {
-	history := []*EventGroupPayload{}
-	var eventGroup *EventGroupPayload
-	for _, e := range list {
-		if eventGroup == nil {
-			eventGroup = &EventGroupPayload{gossipLabel, e.Timestamp.Unix(), map[string]int{}}
-		}
-		if e.Timestamp.Unix() != eventGroup.Timestamp {
-			history = append(history, eventGroup)
-			eventGroup = nil
-			continue
-		}
-		eventGroup.Events[e.Label] = e.Value
-	}
-	p.History = history
-}
-
-func (p *GossipPayload) ToModel() (*Gossip, []*GossipClassifier) {
-	gossip := &Gossip{Label: p.Gossip, Subjects: p.Subjects}
-	classifiers := []*GossipClassifier{}
-	for label, patterns := range p.Classifiers {
-		classifiers = append(classifiers, &GossipClassifier{Label: label, Patterns: patterns})
-	}
-	return gossip, classifiers
-}
-
 type GossipResourceHandler struct {
 	service GossipService
 	pool    *GossipWorkerPool
@@ -166,9 +118,7 @@ func (h *GossipResourceHandler) ClassifierHistory(gossipLabel string, w http.Res
 		return
 	}
 
-	payload := &GossipEventHistoryPayload{gossipLabel, nil}
-	payload.FromModelList(gossipLabel, events)
-
+	payload := GossipEventHistoryPayloadFromModel(gossipLabel, events)
 	response, err := json.Marshal(payload)
 	if err != nil {
 		log.Println(err)
