@@ -90,19 +90,43 @@ var GossipForm = React.createClass({
             alert("subjects is empty");
             return;
         }
+
         var payload = {
             gossip: this.state.gossip,
             subjects: this.state.subjects.split(",").map((s) => s.trim()),
             classifiers: this.getClassifiersPayload()
         };
-        ajar.post(location.protocol + "//" + serviceURL + "/gossip/", payload).then(function(data) {
-            if (this.props.onSave) {
-                this.props.onSave(data);
-            }
-            alert("gossip saved successfully");
-        }.bind(this));
+
+        var response;
+        if (this.props.gossip) {
+            response = ajar.put(location.protocol + "//" + serviceURL + "/gossip/" + this.props.gossip, payload);
+        } else {
+            response = ajar.post(location.protocol + "//" + serviceURL + "/gossip/", payload);
+        }
+        response.then(this.onSave.bind(this));
+    },
+    onSave: function(data) {
+        if (this.props.onSave) {
+            this.props.onSave(data);
+        }
+        alert("gossip saved successfully");
+    },
+    onDelete: function() {
+        var sure = confirm("Are you sure you want delete gossip " + this.props.gosip + "?");
+        if (sure) {
+            ajar.delete(location.protocol + "//" + serviceURL + "/gossip/" + this.props.gossip).then(function() {
+                if (this.props.onDelete) {
+                    this.props.onDelete();
+                }
+            }.bind(this));
+        }
     },
     render: function() {
+        var deleteButton;
+        if (this.props.gossip) {
+            deleteButton = <button type="button" className="btn btn-danger" onClick={this.onDelete}>Delete</button>;
+        }
+
         return (
         <form onSubmit={this.handleSubmit}>
             <div className="form-group">
@@ -122,6 +146,8 @@ var GossipForm = React.createClass({
             <textarea className="form-control" value={this.state.classifiers}
                 onChange={(e) => this.setState({'classifiers': e.target.value}) } />
             </div>
+
+            {deleteButton}
 
             <div className="btn-group pull-right">
                 <button type="button" className="btn btn-default" onClick={this.props.onCancel}>Cancel</button>
@@ -253,6 +279,7 @@ var MultLineChartBox = React.createClass({
 var GossipPanel = React.createClass({
     getInitialState: function() {
         return {
+            gossip: this.props.gossip,
             edit: this.props.gossip === undefined
         };
     },
@@ -265,27 +292,39 @@ var GossipPanel = React.createClass({
         }.bind(this));
     },
     startWorker: function() {
-        ajar.get(location.protocol + "//" + serviceURL + "/gossip/" + this.props.gossip + "/start").then(function() {
+        ajar.get(location.protocol + "//" + serviceURL + "/gossip/" + this.props.gossip + "/start").then(function(data) {
             alert("Worker state " + data.state);
         }.bind(this));
     },
+    onSave: function(gossip) {
+        this.setState({gossip: gossip.gossip, edit: false});
+    },
+    onCancel: function() {
+        this.setState({edit: false});
+    },
+    onDelete: function() {
+        this.setState({deleted: true});
+    },
     render: function() {
         var template;
+        var actionLabel;
         if (this.state.edit) {
-            template = <GossipForm gossip={this.props.gossip} />;
+            actionLabel = "Back";
+            template = <GossipForm gossip={this.props.gossip} onSave={this.onSave} onCancel={this.onCancel} onDelete={this.onDelete} />;
         } else {
+            actionLabel = "Edit";
             template = <MultLineChartBox gossip={this.props.gossip} />;
         }
         return (
-        <div className="pull-left col-xs-12 col-sm-8 col-md-6 col-lg-6">
+        <div className="pull-left col-xs-12 col-sm-8 col-md-6 col-lg-6" style={{display: this.state.deleted ? 'none':'block' }}>
             <div className="panel panel-default">
                 <div className="panel-heading">
-                    <span>Gossip: {this.props.gossip}</span>
+                    <span>Gossip: {this.state.gossip}</span>
 
                     <div className="btn-group pull-right" style={{marginRight: '-10px', marginTop: '-5px'}} role="toolbar">
                         <button type="button" className="btn btn-sm btn-default" onClick={this.startWorker}>Start</button>
                         <button type="button" className="btn btn-sm btn-default" onClick={this.stopWorker}>Stop</button>
-                        <button type="button" className="btn btn-sm btn-default" onClick={this.toggleTemplate}>Edit</button>
+                        <button type="button" className="btn btn-sm btn-default" onClick={this.toggleTemplate}>{actionLabel}</button>
                     </div>
                 </div>
                 <div className="panel-body" style={{height: '300px'}}>
@@ -331,6 +370,7 @@ var App = React.createClass({
         this.setState({showNewGossipForm: false});
         this.state.gossips.unshift(gossip.gossip);
         this.setState({});
+        ajar.get(location.protocol + "//" + serviceURL + "/gossip/" + this.props.gossip + "/start");
     },
     render: function() {
         return (
