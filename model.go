@@ -20,10 +20,8 @@ type GossipClassifier struct {
 }
 
 type GossipClassifierEvent struct {
-	ID         bson.ObjectId `bson:"_id,omitempty",json:"-"`
-	GossipId   bson.ObjectId
-	Label      string
-	Value      int
-	Annotation string
-	Timestamp  time.Time
+	ID        bson.ObjectId `bson:"_id,omitempty",json:"-"`
+	GossipId  bson.ObjectId
+	Events    map[string]int
+	Timestamp time.Time
 }
