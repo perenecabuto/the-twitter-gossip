@@ -153,7 +153,7 @@ var MultLineChartBox = React.createClass({
         ]);
 
         nv.addGraph(function() {
-            var chart = nv.models.lineChart().options({duration: 300});
+            var chart = nv.models.lineChart().options({duration: 0});
             nv.utils.windowResize(chart.update);
 
             chart.yAxis.axisLabel('Hits');
@@ -192,10 +192,33 @@ var MultLineChartBox = React.createClass({
 
         fieldData.values.push(value);
     },
+    loadInitialData: function() {
+        ajar.get(location.protocol + "//" + serviceURL + "/gossip/" + this.props.gossip + "/history").then(function (data) {
+            var history = data.history;
+            if (history === undefined || history.length == 0) {
+                return;
+            }
+
+            history.reverse();
+            for (var i in history) {
+                var timestamp = history[i].timestamp * 1000;
+                for (var key in history[i].events) {
+                    this.addFieldValue(key, {x: timestamp, y: history[i].events[key]});
+                }
+            }
+
+            if (this.chart != undefined) {
+                this.chart.update();
+            }
+        }.bind(this));
+    },
     componentDidMount: function() {
-        this.renderChart();
         if (this.props.topValue) {
             this.state.data.push({field: "top", key: "", color: "transparent", values: []});
+        }
+
+        if (this.props.gossip) {
+            this.loadInitialData();
         }
 
         MessageManager.onMessage(function(message) {
@@ -215,7 +238,8 @@ var MultLineChartBox = React.createClass({
         }.bind(this));
     },
     render: function() {
-        return (<svg style={{height: '300px', width: '100%'}} ref={(ref) => this._el = ref}></svg>);
+        this.renderChart();
+        return (<svg style={{height: '100%', width: '100%'}} ref={(ref) => this._el = ref}></svg>);
     }
 });
 
@@ -254,7 +278,7 @@ var GossipPanel = React.createClass({
                     <button type="button" className="pull-right" onClick={this.stopWorker}>Stop</button>
                     <button type="button" className="pull-right" onClick={this.toggleTemplate}>Edit</button>
                 </div>
-                <div className="panel-body">
+                <div className="panel-body" style={{height: '300px'}}>
                     {template}
                 </div>
             </div>
@@ -297,7 +321,7 @@ var App = React.createClass({
             <button type="button" className="btn" onClick={this.addGossip}>New gossip</button>
             <div className="row" ref={(ref) => this._el = ref}>
                 {Object.keys(this.state.gossips).map(function(gossip) {
-                    return (<GossipPanel gossip={gossip} />)
+                    return (<GossipPanel key={gossip} gossip={gossip} />)
                 })}
             </div>
         </div>
