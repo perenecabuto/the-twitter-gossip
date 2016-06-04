@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"golang.org/x/net/websocket"
 )
@@ -19,15 +18,13 @@ func main() {
 	workerPool := NewGossipWorkerPool()
 	workerPool.OnEvent(func(eg *GossipEventGroup) {
 		g, err := service.FindGossipByLabel(eg.Gossip)
-		if err == nil {
-			for label, value := range eg.EventGroup.Events {
-				gEvent := &GossipClassifierEvent{Label: label, Value: value, GossipId: g.ID, Timestamp: time.Now()}
-				service.SaveEvent(gEvent)
-			}
-		} else {
+		if err != nil {
 			log.Println(err)
+			return
 		}
-		wsClients.BroadcastChann <- EventGroupPayload{eg.Gossip, eg.EventGroup.Time.Unix(), eg.EventGroup.Events}
+		event := &GossipClassifierEvent{GossipId: g.ID, Timestamp: eg.EventGroup.Time, Events: eg.EventGroup.Events}
+		service.SaveEvent(event)
+		wsClients.BroadcastChann <- EventGroupPayloadFromModel(g.Label, event)
 	})
 
 	gossips, _ := service.FindAllGossip()
