@@ -52,7 +52,7 @@ func main() {
 	go StopAllWorkersAtExit(workerPool)
 	go workerPool.StartAll()
 	go wsClients.ListenBroadcasts()
-	err := http.ListenAndServe(port, nil)
+	err := http.ListenAndServe(":"+port, nil)
 	if err != nil {
 		panic("ListenAndServe: " + err.Error())
 	}
