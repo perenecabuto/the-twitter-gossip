@@ -36,7 +36,7 @@ func NewGossipWorker(gossip *Gossip, gossipClassifiers []*GossipClassifier) *Gos
 	log.Println("Listenning Gossip: ", gossip.Label)
 	stream := NewTwitterStream(gossip.Subjects)
 	classifiers := ConvertMessageClassifiers(gossipClassifiers)
-	timeCounter := NewTimedLabelCounter(DEFAULT_INTERVAL)
+	timeCounter := NewTimedLabelCounter()
 	listener := NewMessageClassifierListener(classifiers)
 	stream.AddListener(listener)
 
@@ -66,9 +66,13 @@ func (gw *GossipWorker) run() {
 	for {
 		select {
 		case <-gw.startChann:
-			log.Println("! Starting GossipWorker:", gw.gossip.Label)
+			interval := gw.gossip.WorkerInterval
+			if interval < 1 {
+				interval = DEFAULT_INTERVAL
+			}
+			log.Println("! Starting GossipWorker:", gw.gossip.Label, " interval:", interval)
 			go gw.stream.Listen()
-			go gw.timeCounter.Start()
+			go gw.timeCounter.Start(interval)
 			gw.startChann <- true
 
 		case group := <-gw.timeCounter.OnTimeChann:

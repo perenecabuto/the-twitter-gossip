@@ -1,5 +1,7 @@
 package main
 
+import "time"
+
 type EventGroupPayload struct {
 	Gossip    string         `json:"gossip"`
 	Timestamp int64          `json:"timestamp"`
@@ -24,14 +26,16 @@ func GossipEventHistoryPayloadFromModel(gossipLabel string, list []*GossipClassi
 }
 
 type GossipPayload struct {
-	Gossip      string              `json:"gossip"`
-	Subjects    []string            `json:"subjects"`
-	Classifiers map[string][]string `json:"classifiers"`
-	WorkerState string              `json:"state"`
+	Gossip         string              `json:"gossip"`
+	Subjects       []string            `json:"subjects"`
+	Classifiers    map[string][]string `json:"classifiers"`
+	WorkerState    string              `json:"state"`
+	WorkerInterval time.Duration       `json:"interval"`
 }
 
 func (p *GossipPayload) ToModel() (*Gossip, []*GossipClassifier) {
-	gossip := &Gossip{Label: p.Gossip, Subjects: p.Subjects}
+	interval := p.WorkerInterval * time.Second
+	gossip := &Gossip{Label: p.Gossip, Subjects: p.Subjects, WorkerInterval: interval}
 	classifiers := []*GossipClassifier{}
 	for label, patterns := range p.Classifiers {
 		classifiers = append(classifiers, &GossipClassifier{Label: label, Patterns: patterns})

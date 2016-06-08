@@ -7,9 +7,10 @@ import (
 )
 
 type Gossip struct {
-	ID       bson.ObjectId `bson:"_id,omitempty"`
-	Label    string
-	Subjects []string
+	ID             bson.ObjectId `bson:"_id,omitempty"`
+	Label          string
+	WorkerInterval time.Duration
+	Subjects       []string
 }
 
 type GossipClassifier struct {

@@ -21,15 +21,14 @@ func NewEventGroup(t time.Time, events EventCount) *EventGroup {
 }
 
 type TimedLabelCounter struct {
-	interval    time.Duration
 	events      EventCount
 	reportChann chan string
 	stopChann   chan bool
 	OnTimeChann chan *EventGroup
 }
 
-func NewTimedLabelCounter(interval time.Duration) *TimedLabelCounter {
-	return &TimedLabelCounter{interval: interval, events: EventCount{},
+func NewTimedLabelCounter() *TimedLabelCounter {
+	return &TimedLabelCounter{events: EventCount{},
 		reportChann: make(chan string), stopChann: make(chan bool),
 		OnTimeChann: make(chan *EventGroup)}
 }
@@ -38,8 +37,8 @@ func (tlc *TimedLabelCounter) ReportEvent(name string) {
 	tlc.reportChann <- name
 }
 
-func (tlc *TimedLabelCounter) Start() {
-	ticker := time.NewTicker(tlc.interval)
+func (tlc *TimedLabelCounter) Start(interval time.Duration) {
+	ticker := time.NewTicker(interval)
 	for {
 		select {
 		case t := <-ticker.C:

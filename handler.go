@@ -174,5 +174,5 @@ func (h *GossipResourceHandler) buildGossipPayload(g *Gossip) *GossipPayload {
 	}
 
 	state := string(h.pool.WorkerState(WorkerID(g.Label)))
-	return &GossipPayload{g.Label, g.Subjects, cPayload, state}
+	return &GossipPayload{g.Label, g.Subjects, cPayload, state, g.WorkerInterval}
 }
