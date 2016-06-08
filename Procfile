@@ -1,1 +1,1 @@
-web: ./the-twitter-gossip
+web: the-twitter-gossip
