@@ -2,14 +2,19 @@ package main
 
 import (
 	"log"
+	"os"
 
 	"github.com/dghubble/go-twitter/twitter"
 	"github.com/dghubble/oauth1"
 )
 
 var (
-	config = oauth1.NewConfig("PtBsLxlPzwD39F1dfPsxxKfhL", "TMduA8ViNysuVaOztHk8yFGdj0VK6NWGDCrxe081bYd0QZyqYd")
-	token  = oauth1.NewToken("1018696039-nYjPFKCIB69nRoKMvUNrV5CzhJzKn0gbXEhshRe", "luYhEOT2Id0uhXcMz5a4cDcbAfhYefw4kXUvUsIQS8lZ2")
+	consumerKey    = os.Getenv("TWITTER_CONSUMER_KEY")
+	consumerSecret = os.Getenv("TWITTER_CONSUMER_SECRET")
+	tokenValue     = os.Getenv("TWITTER_TOKEN")
+	tokenSecret    = os.Getenv("TWITTER_TOKEN_SECRET")
+	config         = oauth1.NewConfig(consumerKey, consumerSecret)
+	token          = oauth1.NewToken(tokenValue, tokenSecret)
 )
 
 type TwitterStreamListener interface {

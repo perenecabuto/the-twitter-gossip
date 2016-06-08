@@ -12,7 +12,9 @@ import (
 )
 
 var (
-	port = os.Getenv("PORT")
+	port        = os.Getenv("PORT")
+	mongoURL    = os.Getenv("MONGO_URL")
+	mongoDBName = os.Getenv("MONGO_DB")
 )
 
 func main() {
@@ -20,9 +22,8 @@ func main() {
 		port = "8000"
 	}
 
-	//service := &DummyGossipService{}
 	wsClients := NewWSConnections()
-	service := NewMongoGossipService()
+	service := NewMongoGossipService(mongoURL, mongoDBName)
 	workerPool := NewGossipWorkerPool()
 	workerPool.OnEvent(func(eg *GossipEventGroup) {
 		g, err := service.FindGossipByLabel(eg.Gossip)

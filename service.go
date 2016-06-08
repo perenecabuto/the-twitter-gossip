@@ -21,19 +21,18 @@ type GossipService interface {
 
 type MongoGossipService struct {
 	session      *mgo.Session
-	dbName       string
 	gossipC      *mgo.Collection
 	classifiersC *mgo.Collection
 	eventsC      *mgo.Collection
 }
 
-func NewMongoGossipService() *MongoGossipService {
-	s, err := mgo.Dial("mongodb://localhost")
+func NewMongoGossipService(mongoURL string, dbName string) *MongoGossipService {
+	log.Println("Connecting to Mongo on DB " + dbName)
+	s, err := mgo.Dial(mongoURL)
 	if err != nil {
 		panic(err)
 	}
 
-	dbName := "TheTwitterGossip"
 	gossipC := s.DB(dbName).C("gossip")
 	index := mgo.Index{Key: []string{"label"}, Unique: true, DropDups: true, Background: true, Sparse: true}
 	err = gossipC.EnsureIndex(index)
@@ -44,7 +43,7 @@ func NewMongoGossipService() *MongoGossipService {
 	classifiersC := s.DB(dbName).C("gossip_classifiers")
 	eventsC := s.DB(dbName).C("gossip_classifier_events")
 
-	return &MongoGossipService{s, dbName, gossipC, classifiersC, eventsC}
+	return &MongoGossipService{s, gossipC, classifiersC, eventsC}
 }
 
 func (s *MongoGossipService) FindAllGossip() ([]*Gossip, error) {
