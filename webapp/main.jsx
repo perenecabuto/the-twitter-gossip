@@ -43,6 +43,66 @@ var MessageManager = (function() {
 })();
 
 
+var ClassifierSintaxDescription = React.createClass({
+    render: function() {
+        var itemFormat = (
+            <code>
+                <code style={{color: "blue"}}>{":<label>\n"}</code>
+                <code style={{color: "green"}}>{"<regex>\n"}</code>
+                <code style={{color: "green"}}>{"<regex>\n"}</code>
+            </code>
+        );
+        return (
+        <div className="list-group">
+            <div className="list-group-item active">
+                <h2 className="list-group-item-heading">Classifiers form syntax</h2>
+            </div>
+            <div className="list-group-item">
+                <div className="list-group-item-text">
+                    Here you place the classifier names followed by its criterias.<br />
+                    Each line represents a <i style={{color: 'blue'}}>:classifierLabel </i>
+                    or a <i style={{color: "green"}}>regex.*pattern</i><br />
+                    The :classifierLabel is a string that starts with <strong>:</strong><br />
+                    The above lines that not starts with : is a criteria<br />
+                    A new line that starts with : is a new :classifierLabel, and the end of the previeous :classifierLabel<br />
+                </div>
+            </div>
+            <div className="list-group-item col-lg-6 col-md-6 col-sm-6">
+                <h2 className="list-group-item-heading">Format</h2>
+                <div className="list-group-item-text">
+                    <pre>
+                    {itemFormat}
+                    {itemFormat}
+                    {itemFormat}
+                    <code style={{color: "green"}}>{"\n"}</code>
+                    </pre>
+                </div>
+            </div>
+            <div className="list-group-item col-lg-6 col-md-6 col-sm-6">
+                <h2 className="list-group-item-heading">Example</h2>
+                <div className="list-group-item-text">
+                    <pre>
+                        <code style={{color: "blue"}}>{":Problems\n"}</code>
+                        <code style={{color: "green"}}>{"no money\n"}</code>
+                        <code style={{color: "green"}}>{"gospel\n"}</code>
+                        <code style={{color: "green"}}>{"hate\n"}</code>
+
+                        <code style={{color: "blue"}}>{":Good News\n"}</code>
+                        <code style={{color: "green"}}>{"money\n"}</code>
+                        <code style={{color: "green"}}>{"radiohead\n"}</code>
+                        <code style={{color: "green"}}>{"peace\n"}</code>
+
+                        <code style={{color: "blue"}}>{":Anything\n"}</code>
+                        <code style={{color: "green"}}>{".*\n"}</code>
+                    </pre>
+                </div>
+            </div>
+        </div>
+        )
+    }
+});
+
+
 var GossipForm = React.createClass({
     getInitialState: function() {
         return {
@@ -135,6 +195,12 @@ var GossipForm = React.createClass({
             }.bind(this));
         }
     },
+    showDescription: function() {
+        this.setState({classifierSyntaxDescriptionVisible: true});
+    },
+    hideDescription: function() {
+        this.setState({classifierSyntaxDescriptionVisible: false});
+    },
     render: function() {
         var deleteButton;
         if (this.props.gossip) {
@@ -162,9 +228,14 @@ var GossipForm = React.createClass({
                         onChange={(e) => this.setState({'interval': e.target.value}) } />
                 </div>
             </div>
+            <br />
 
             <div className="form-group">
-            <label>Classifiers (<a>description</a>)</label><br />
+            <Modal isOpen={this.state.classifierSyntaxDescriptionVisible} onRequestClose={this.hideDescription}>
+                <button onClick={this.hideDescription} className="pull-right close">close &times;</button><br />
+                <ClassifierSintaxDescription />
+            </Modal>
+            <label>Classifiers (<a onClick={this.showDescription}>see the syntax</a>)</label><br />
             <textarea className="form-control" style={{resize: 'vertical'}} value={this.state.classifiers}
                 onChange={(e) => this.setState({'classifiers': e.target.value}) } />
             </div>
@@ -362,7 +433,8 @@ var GossipPanel = React.createClass({
 var App = React.createClass({
     getInitialState: function() {
         return {
-            gossips: []
+            gossips: [],
+            showNewGossipForm: false
         };
     },
     componentDidMount: function() {
@@ -404,7 +476,7 @@ var App = React.createClass({
                 <br /><br />
             </div>
 
-            <Modal isOpen={this.state.showNewGossipForm}>
+            <Modal isOpen={this.state.showNewGossipForm} onRequestClose={this.onCancelNewGossip}>
                 <GossipForm onSave={this.onSaveNewGossip} onCancel={this.onCancelNewGossip} />
             </Modal>
 
