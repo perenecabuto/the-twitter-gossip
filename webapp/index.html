@@ -1,15 +1,56 @@
 <!DOCTYPE html>
 <html>
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=0.8">
-    <title>The twitter gossip</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/nvd3/1.8.3/nv.d3.min.css" />
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap-theme.min.css" integrity="sha384-fLW2N01lMqjakBkx3l/M9EahuwpSfeNvV63J5ezn3uZzapT0u7EYsXMjQV+0En5r" crossorigin="anonymous">
-</head>
-<body>
-    <div id="content"></div>
-    <script src="bundle.js"></script>
-</body>
-</html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=0.8">
+        <title>The twitter gossip</title>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/nvd3/1.8.3/nv.d3.min.css" />
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap-theme.min.css" integrity="sha384-fLW2N01lMqjakBkx3l/M9EahuwpSfeNvV63J5ezn3uZzapT0u7EYsXMjQV+0En5r" crossorigin="anonymous">
+        <style>
+            input[type="range"] {
+                -webkit-appearance: none;
+                    height: 1px;
+                    background-size: 1000px 1px;
+                    background-position-y: 50%;
+                    background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mM88x8AAp0BzdNtlUkAAAAASUVORK5CYII=);
+                    background-repeat: no-repeat;
+                    border: none;
+                    box-shadow: none;
+                    -webkit-box-shadow: none;
+                    padding: 0;
+                }
+
+                input[type="range"]:active::-webkit-slider-thumb,
+                input[type="range"]:focus::-webkit-slider-thumb {
+                    background-color: #66afe9;
+                }
+
+                input[type="range"]::-webkit-slider-thumb {
+                    -webkit-appearance: none;
+                    position: relative;
+                    top: 0px;
+                    z-index: 1;
+                    width: 11px;
+                    height: 11px;
+                    cursor: pointer;
+                    -webkit-border-radius: 40px;
+                    -moz-border-radius: 40px;
+                    border-radius: 40px;
+                    background-color: #ccc;
+                }
+
+                input[type="range"]:active, input[type="range"]:focus {
+                    opacity: 1;
+                    border: none;
+                    box-shadow: none;
+                    -webkit-box-shadow: none;
+                    background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkyPr3HwAEQwJpwLpq1gAAAABJRU5ErkJggg==);
+                }
+            </style>
+        </head>
+        <body>
+            <div id="content"></div>
+            <script src="bundle.js"></script>
+        </body>
+    </html>

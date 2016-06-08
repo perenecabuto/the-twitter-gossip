@@ -47,7 +47,8 @@ var GossipForm = React.createClass({
         return {
             label: this.props.label || "",
             subjects: "",
-            classifiers: ""
+            classifiers: "",
+            interval: 10
         }
     },
     componentDidMount: function() {
@@ -94,7 +95,8 @@ var GossipForm = React.createClass({
         var payload = {
             gossip: this.state.gossip,
             subjects: this.state.subjects.split(",").map((s) => s.trim()),
-            classifiers: this.getClassifiersPayload()
+            classifiers: this.getClassifiersPayload(),
+            interval: parseInt(this.state.interval)
         };
 
         var response;
@@ -130,15 +132,21 @@ var GossipForm = React.createClass({
         return (
         <form onSubmit={this.handleSubmit}>
             <div className="form-group">
-            <label>Gossip</label><br />
-            <input className="form-control" value={this.state.gossip}
-                onChange={(e) => this.setState({'gossip': e.target.value}) } />
+                <label>Gossip</label><br />
+                <input className="form-control" value={this.state.gossip}
+                    onChange={(e) => this.setState({'gossip': e.target.value}) } />
             </div>
 
             <div className="form-group">
-            <label>Subjects (comma separated)</label><br />
-            <input className="form-control" value={this.state.subjects}
-                onChange={(e) => this.setState({'subjects': e.target.value}) } />
+                <label>Subjects (comma separated)</label><br />
+                <input className="form-control" value={this.state.subjects}
+                    onChange={(e) => this.setState({'subjects': e.target.value}) } />
+            </div>
+
+            <div className="form-group">
+                <label>Interval ({this.state.interval}s)</label><br />
+                <input type="range" className="form-control" value={this.state.interval}
+                    onChange={(e) => this.setState({'interval': e.target.value}) } />
             </div>
 
             <div className="form-group">
