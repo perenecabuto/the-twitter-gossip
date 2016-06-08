@@ -141,28 +141,30 @@ var GossipForm = React.createClass({
         }
 
         return (
-        <form onSubmit={this.handleSubmit}>
-            <div className="form-group">
-                <label>Gossip</label><br />
-                <input className="form-control" value={this.state.gossip}
-                    onChange={(e) => this.setState({'gossip': e.target.value}) } />
-            </div>
+        <form onSubmit={this.handleSubmit} ref={(el) => this._el = el}>
+            <div className="form-inline row">
+                <div className="form-group col-lg-4 col-md-6 col-sm-6 col-xs-6">
+                    <label>Gossip</label><br />
+                    <input className="form-control" value={this.state.gossip}
+                        onChange={(e) => this.setState({'gossip': e.target.value}) } />
+                </div>
 
-            <div className="form-group">
-                <label>Subjects (comma separated)</label><br />
-                <input className="form-control" value={this.state.subjects}
-                    onChange={(e) => this.setState({'subjects': e.target.value}) } />
-            </div>
+                <div className="form-group col-lg-4 col-md-6 col-sm-6 col-xs-6">
+                    <label>Subjects</label><br />
+                    <input className="form-control" value={this.state.subjects} placeholder="comma separated"
+                        onChange={(e) => this.setState({'subjects': e.target.value}) } />
+                </div>
 
-            <div className="form-group">
-                <label>Interval ({this.state.interval}s)</label><br />
-                <input type="range" className="form-control" value={this.state.interval}
-                    onChange={(e) => this.setState({'interval': e.target.value}) } />
+                <div className="form-group col-lg-4 col-md-12 col-sm-12 col-xs-12">
+                    <label>Interval ({this.state.interval}s)</label><br />
+                    <input type="range" className="form-control" value={this.state.interval}
+                        onChange={(e) => this.setState({'interval': e.target.value}) } />
+                </div>
             </div>
 
             <div className="form-group">
             <label>Classifiers (<a>description</a>)</label><br />
-            <textarea className="form-control" value={this.state.classifiers}
+            <textarea className="form-control" style={{resize: 'vertical'}} value={this.state.classifiers}
                 onChange={(e) => this.setState({'classifiers': e.target.value}) } />
             </div>
 
@@ -290,7 +292,7 @@ var MultLineChartBox = React.createClass({
     },
     render: function() {
         this.renderChart();
-        return (<svg style={{height: '100%', width: '100%'}} ref={(ref) => this._el = ref}></svg>);
+        return (<svg style={{minHeight: 'inherit', height: '100%', width: '100%'}} ref={(ref) => this._el = ref}></svg>);
     }
 });
 
@@ -346,7 +348,7 @@ var GossipPanel = React.createClass({
                         <button type="button" className="btn btn-sm btn-default" onClick={this.toggleTemplate}>{actionLabel}</button>
                     </div>
                 </div>
-                <div className="panel-body" style={{height: '300px'}}>
+                <div className="panel-body" style={{minHeight: '300px'}}>
                     {template}
                 </div>
             </div>
