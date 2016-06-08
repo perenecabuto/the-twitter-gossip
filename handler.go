@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"time"
 )
 
 type GossipResourceHandler struct {
@@ -174,5 +175,5 @@ func (h *GossipResourceHandler) buildGossipPayload(g *Gossip) *GossipPayload {
 	}
 
 	state := string(h.pool.WorkerState(WorkerID(g.Label)))
-	return &GossipPayload{g.Label, g.Subjects, cPayload, state, g.WorkerInterval}
+	return &GossipPayload{g.Label, g.Subjects, cPayload, state, g.WorkerInterval / time.Second}
 }

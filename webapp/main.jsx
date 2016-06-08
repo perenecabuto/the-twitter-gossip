@@ -58,6 +58,7 @@ var GossipForm = React.createClass({
                 this.setState({
                     gossip: gossip.gossip,
                     subjects: gossip.subjects.join(", "),
+                    interval: gossip.interval,
                     classifiers: Object.keys(gossip.classifiers).map(function(label) {
                         var patterns = gossip.classifiers[label];
                         return ":" + label + "\n" + patterns.join("\n");
