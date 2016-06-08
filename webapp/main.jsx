@@ -53,6 +53,7 @@ var GossipForm = React.createClass({
     },
     componentDidMount: function() {
         if (this.props.gossip) {
+            this.disableForm(true);
             ajar.get(location.protocol + "//" + serviceURL + "/gossip/" + this.props.gossip)
             .then(function(gossip) {
                 this.setState({
@@ -64,8 +65,17 @@ var GossipForm = React.createClass({
                         return ":" + label + "\n" + patterns.join("\n");
                     }).join("\n")
                 });
+                this.disableForm(false);
             }.bind(this));
         }
+    },
+    disableForm: function(disabled) {
+        var inputs = [].slice.call(this._el.getElementsByTagName('input'));
+        inputs.push(this._el.getElementsByTagName('textarea')[0]);
+        for (var i in inputs) {
+            inputs[i].disabled = disabled;
+        }
+
     },
     getClassifiersPayload: function() {
         var classifiers = {};
