@@ -94,7 +94,7 @@ func (h *GossipResourceHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.pool.BuildWorker(WorkerID(gossip.Label), gossip, classifiers)
-	h.Get(gossip.Label, w, r)
+	h.StartWorker(gossip.Label, w, r)
 }
 
 func (h *GossipResourceHandler) Update(gossipLabel string, w http.ResponseWriter, r *http.Request) {
