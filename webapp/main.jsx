@@ -5,7 +5,8 @@ var ajar = require('ajar');
 var nv = require('nvd3');
 
 
-var serviceURL = window.location.hostname + ":8000";
+//var serviceURL = window.location.hostname + ":8000";
+var serviceURL = "the-twitter-gossip.herokuapp.com";
 
 
 var MessageManager = (function() {

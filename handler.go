@@ -86,7 +86,6 @@ func (h *GossipResourceHandler) Create(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), 500)
 		return
 	}
-
 	gossip, classifiers := payload.ToModel()
 	if err := h.service.CreateGossip(gossip, classifiers); err != nil {
 		log.Println(err)
@@ -105,7 +104,6 @@ func (h *GossipResourceHandler) Update(gossipLabel string, w http.ResponseWriter
 		http.Error(w, err.Error(), 500)
 		return
 	}
-
 	gossip, classifiers := payload.ToModel()
 	if err := h.service.UpdateGossip(gossipLabel, gossip, classifiers); err != nil {
 		log.Println(err)

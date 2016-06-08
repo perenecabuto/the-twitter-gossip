@@ -73,6 +73,8 @@ func (s *MongoGossipService) CreateGossip(g *Gossip, classifiers []*GossipClassi
 	if err != nil {
 		return err
 	}
+
+	g, err = s.FindGossipByLabel(g.Label)
 	if err = s.SaveClassifiers(g, classifiers); err != nil {
 		return err
 	}
