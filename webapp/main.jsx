@@ -45,10 +45,10 @@ var MessageManager = (function() {
 var GossipForm = React.createClass({
     getInitialState: function() {
         return {
-            label: this.props.label || "",
+            gossip: this.props.gossip || "",
             subjects: "",
             classifiers: "",
-            interval: 10
+            interval: 0
         }
     },
     componentDidMount: function() {
