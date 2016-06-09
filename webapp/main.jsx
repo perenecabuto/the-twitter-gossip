@@ -91,7 +91,9 @@ var HistoryChart = React.createClass({
 
                 <hr />
                 <div className="row">
-                    <MultLineChartBox gossip={this.props.gossip} fromDate={this.state.startDate} toDate={this.state.endDate}/>
+                    <div className="col-lg-12 col-md-12 col-sm-12 col-xs-12">
+                        <MultLineChartBox gossip={this.props.gossip} fromDate={this.state.startDate} toDate={this.state.endDate}/>
+                    </div>
                 </div>
             </div>
         )
@@ -168,9 +170,9 @@ var GossipForm = React.createClass({
         }
     },
     componentDidMount: function() {
-        if (this.props.gossip) {
+        if (this.state.gossip) {
             this.disableForm(true);
-            ajar.get(location.protocol + "//" + serviceURL + "/gossip/" + this.props.gossip)
+            ajar.get(location.protocol + "//" + serviceURL + "/gossip/" + this.state.gossip)
             .then(function(gossip) {
                 this.setState({
                     gossip: gossip.gossip,
@@ -227,23 +229,22 @@ var GossipForm = React.createClass({
         };
 
         var response;
-        if (this.props.gossip) {
+        if (this.state.gossip) {
             response = ajar.put(location.protocol + "//" + serviceURL + "/gossip/" + this.props.gossip, payload);
         } else {
             response = ajar.post(location.protocol + "//" + serviceURL + "/gossip/", payload);
         }
-        response.then(this.onSave.bind(this));
+        response.then(this.onSave);
     },
     onSave: function(data) {
         if (this.props.onSave) {
             this.props.onSave(data);
         }
-        alert("gossip saved successfully");
     },
     onDelete: function() {
         var sure = confirm("Are you sure you want delete gossip " + this.props.gosip + "?");
         if (sure) {
-            ajar.delete(location.protocol + "//" + serviceURL + "/gossip/" + this.props.gossip).then(function() {
+            ajar.delete(location.protocol + "//" + serviceURL + "/gossip/" + this.state.gossip).then(function() {
                 if (this.props.onDelete) {
                     this.props.onDelete();
                 }
@@ -258,7 +259,7 @@ var GossipForm = React.createClass({
     },
     render: function() {
         var deleteButton;
-        if (this.props.gossip) {
+        if (this.state.gossip) {
             deleteButton = <button type="button" className="btn btn-danger" onClick={this.onDelete}>Delete</button>;
         }
 
@@ -312,13 +313,16 @@ var GossipForm = React.createClass({
 var MultLineChartBox = React.createClass({
     getInitialState: function() {
         return {
+            gossip: this.props.gossip,
             maxItems: 20,
             data: []
         };
     },
     componentWillReceiveProps: function(props) {
         if (props.fromDate != this.props.fromDate) {
-            this.loadInitialData(props.fromDate, props.toDate);
+            this.loadInitialData(props.gossip, props.fromDate, props.toDate);
+        } else if (props.gossip != this.props.gossip) {
+            this.loadInitialData(props.gossip, null, null);
         }
     },
     getRandomColor: function() {
@@ -379,8 +383,9 @@ var MultLineChartBox = React.createClass({
 
         fieldData.values.push(value);
     },
-    loadInitialData: function(fromDate, toDate) {
-        var url = location.protocol + "//" + serviceURL + "/gossip/" + this.props.gossip + "/history?";
+    loadInitialData: function(gossip, fromDate, toDate) {
+        gossip = gossip || this.state.gossip || this.props.gossip;
+        var url = location.protocol + "//" + serviceURL + "/gossip/" + gossip + "/history?";
         fromDate = fromDate || this.props.fromDate;
         if (fromDate) {
             url += "&from=" + Math.round(fromDate.getTime() / 1000)
@@ -413,13 +418,14 @@ var MultLineChartBox = React.createClass({
             this.state.data.push({field: "top", key: "", color: "transparent", values: []});
         }
 
-        if (this.props.gossip) {
+        var gossip = this.state.gossip;
+        if (gossip) {
             this.loadInitialData();
         }
 
         if (this.props.realtime) {
             MessageManager.onMessage(function(message) {
-                if (!this.isMounted() || message.gossip !== undefined && message.gossip !== this.props.gossip) {
+                if (!this.isMounted() || message.gossip !== undefined && message.gossip !== gossip) {
                     return;
                 }
 
@@ -433,7 +439,7 @@ var MultLineChartBox = React.createClass({
     },
     render: function() {
         this.renderChart();
-        return (<svg style={{minHeight: 'inherit', height: '100%', width: '100%'}} ref={(ref) => this._el = ref}></svg>);
+        return (<svg style={{height: '100%', width: '100%'}} ref={(ref) => this._el = ref}></svg>);
     }
 });
 
@@ -455,35 +461,59 @@ var GossipPanel = React.createClass({
         this.setState({action: "realtime"});
     },
     stopWorker: function() {
-        ajar.get(location.protocol + "//" + serviceURL + "/gossip/" + this.props.gossip + "/stop").then(function(data) {
-            alert("Worker state " + data.state);
-        }.bind(this));
+        var url = location.protocol + "//" + serviceURL + "/gossip/" + this.state.gossip + "/stop";
+        ajar.get(url).then(data => this.updateData(data));
     },
     startWorker: function() {
-        ajar.get(location.protocol + "//" + serviceURL + "/gossip/" + this.props.gossip + "/start").then(function(data) {
-            alert("Worker state " + data.state);
-        }.bind(this));
+        var url = location.protocol + "//" + serviceURL + "/gossip/" + this.state.gossip + "/start";
+        ajar.get(url).then(data => this.updateData(data));
     },
     onSave: function(gossip) {
-        this.setState({gossip: gossip.gossip, action: false});
+        this.setState({action: "realtime"});
+        this.updateData(gossip);
     },
     onCancel: function() {
-        this.setState({action: false});
+        this.setState({action: "realtime"});
     },
     onDelete: function() {
         this.setState({deleted: true});
+    },
+    updateData: function(gossip) {
+        this.setState({
+            gossip: gossip.gossip,
+            interval: gossip.interval,
+            workerStatus: gossip.state,
+            classifiers: Object.keys(gossip.classifiers)
+        });
+    },
+    componentDidMount: function() {
+        ajar.get(location.protocol + "//" + serviceURL + "/gossip/" + this.state.gossip)
+        .then(gossip => this.updateData(gossip));
     },
     render: function() {
         var template;
         switch (this.state.action) {
         case "edit":
-            template = <GossipForm gossip={this.props.gossip} onSave={this.onSave} onCancel={this.onCancel} onDelete={this.onDelete} />;
+            template = <GossipForm gossip={this.state.gossip} onSave={this.onSave} onCancel={this.onCancel} onDelete={this.onDelete} />;
             break;
         case "realtime":
-            template = <MultLineChartBox gossip={this.props.gossip} realtime={true} />;
+            template = (
+            <div className="row">
+                <div className="col-lg-6 col-md-6 col-sm-6 col-xs-6" style={{minHeight: '34px'}}>
+                    <label>Worker status:</label> <span>{this.state.workerStatus}</span>
+                </div>
+                <div className="col-lg-6 col-md-6 col-sm-6 col-xs-6">
+                    <label>Interval:</label> <span>{this.state.interval}s</span>
+                </div>
+                <div className="col-lg-12 col-md-12 col-sm-12 col-xs-12">
+                    <hr />
+                    <MultLineChartBox gossip={this.state.gossip} realtime={true} />
+                </div>
+            </div>
+            );
             break;
         case "history":
-            template = <HistoryChart gossip={this.props.gossip} />;
+            template = <HistoryChart gossip={this.state.gossip} />;
             break;
         }
         return (
@@ -544,7 +574,6 @@ var App = React.createClass({
         this.setState({showNewGossipForm: false});
         this.state.gossips.unshift(gossip.gossip);
         this.setState({});
-        ajar.get(location.protocol + "//" + serviceURL + "/gossip/" + this.props.gossip + "/start");
     },
     render: function() {
         return (
