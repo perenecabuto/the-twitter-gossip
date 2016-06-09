@@ -43,6 +43,61 @@ var MessageManager = (function() {
 })();
 
 
+var HistoryChart = React.createClass({
+    getInitialState: function() {
+        return {
+            fromDateInHours: 0,
+            startDate: 0,
+            endDate: 0,
+            formattedStartDate: 'now',
+            formattedEndDate: 'now'
+        }
+    },
+    componentDidMount: function() {
+        var now = new Date();
+        this.setState({
+            startDate: now,
+            endDate: now,
+        });
+    },
+    handleStartDate: function(e) {
+        var timeUnit = "hours";
+        var formattedStartDate = Math.abs(e.target.value) + " " + timeUnit + " ago";
+        this.setState({fromDateInHours: e.target.value, formattedStartDate: formattedStartDate})
+    },
+    getHistory: function() {
+        var endDate = new Date();
+        var startDate = new Date();
+        var hours = this.state.fromDateInHours;
+        var hoursInterval = 10;
+        endDate.setTime(endDate.getTime() + (hours*60*60*1000));
+        startDate.setTime(endDate.getTime() - (hoursInterval*60*60*1000));
+        this.setState({endDate: endDate, startDate: startDate})
+    },
+    render: function() {
+        return (
+            <div>
+                <div className="row">
+                    <div className="col-lg-4 col-md-4 col-sm-4 col-xs-4">
+                        <label>from:</label> <span>{this.state.formattedStartDate}</span>
+                        <input type="range" onChange={this.handleStartDate} min={"-10"} max={"0"} value={this.state.fromDateInHours} />
+                    </div>
+                    <div className="col-lg-3 col-md-3 col-sm-3 col-xs-3">
+                        <button type="button" className="btn btn-link" onClick={this.getHistory}>
+                            <span className="glyphicon glyphicon-search" aria-hidden="true"></span> search
+                        </button>
+                    </div>
+                </div>
+
+                <hr />
+                <div className="row">
+                    <MultLineChartBox gossip={this.props.gossip} fromDate={this.state.startDate} toDate={this.state.endDate}/>
+                </div>
+            </div>
+        )
+    }
+});
+
 var ClassifierSintaxDescription = React.createClass({
     render: function() {
         var itemFormat = (
@@ -346,21 +401,19 @@ var MultLineChartBox = React.createClass({
             this.loadInitialData();
         }
 
-        MessageManager.onMessage(function(message) {
-            if (!this.isMounted() || message.gossip !== undefined && message.gossip !== this.props.gossip) {
-                return;
-            }
+        if (this.props.realtime) {
+            MessageManager.onMessage(function(message) {
+                if (!this.isMounted() || message.gossip !== undefined && message.gossip !== this.props.gossip) {
+                    return;
+                }
 
-            if (this.props.topValue) {
-                this.addFieldValue("top", this.props.topValue);
-            }
+                for (var key in message.events) {
+                    this.addFieldValue(key, {x: new Date().getTime(), y: message.events[key]});
+                }
 
-            for (var key in message.events) {
-                this.addFieldValue(key, {x: new Date().getTime(), y: message.events[key]});
-            }
-
-            this.chart.update();
-        }.bind(this));
+                this.chart.update();
+            }.bind(this));
+        }
     },
     render: function() {
         this.renderChart();
@@ -373,11 +426,17 @@ var GossipPanel = React.createClass({
     getInitialState: function() {
         return {
             gossip: this.props.gossip,
-            edit: this.props.gossip === undefined
+            action: "history"
         };
     },
-    toggleTemplate: function() {
-        this.setState({edit: !this.state.edit});
+    showForm: function() {
+        this.setState({action: "edit"});
+    },
+    showHistory: function() {
+        this.setState({action: "history"});
+    },
+    showRealtime: function() {
+        this.setState({action: "realtime"});
     },
     stopWorker: function() {
         ajar.get(location.protocol + "//" + serviceURL + "/gossip/" + this.props.gossip + "/stop").then(function(data) {
@@ -390,23 +449,26 @@ var GossipPanel = React.createClass({
         }.bind(this));
     },
     onSave: function(gossip) {
-        this.setState({gossip: gossip.gossip, edit: false});
+        this.setState({gossip: gossip.gossip, action: false});
     },
     onCancel: function() {
-        this.setState({edit: false});
+        this.setState({action: false});
     },
     onDelete: function() {
         this.setState({deleted: true});
     },
     render: function() {
         var template;
-        var actionLabel;
-        if (this.state.edit) {
-            actionLabel = "Back";
+        switch (this.state.action) {
+        case "edit":
             template = <GossipForm gossip={this.props.gossip} onSave={this.onSave} onCancel={this.onCancel} onDelete={this.onDelete} />;
-        } else {
-            actionLabel = "Edit";
-            template = <MultLineChartBox gossip={this.props.gossip} />;
+            break;
+        case "realtime":
+            template = <MultLineChartBox gossip={this.props.gossip} realtime={true} />;
+            break;
+        case "history":
+            template = <HistoryChart gossip={this.props.gossip} />;
+            break;
         }
         return (
         <div className="pull-left col-xs-12 col-sm-8 col-md-6 col-lg-6" style={{display: this.state.deleted ? 'none':'block' }}>
@@ -417,7 +479,9 @@ var GossipPanel = React.createClass({
                     <div className="btn-group pull-right" style={{marginRight: '-10px', marginTop: '-5px'}} role="toolbar">
                         <button type="button" className="btn btn-sm btn-default" onClick={this.startWorker}>Start</button>
                         <button type="button" className="btn btn-sm btn-default" onClick={this.stopWorker}>Stop</button>
-                        <button type="button" className="btn btn-sm btn-default" onClick={this.toggleTemplate}>{actionLabel}</button>
+                        <button type="button" className="btn btn-sm btn-default" onClick={this.showForm}>Edit</button>
+                        <button type="button" className="btn btn-sm btn-default" onClick={this.showHistory}>History</button>
+                        <button type="button" className="btn btn-sm btn-default" onClick={this.showRealtime}>Realtime</button>
                     </div>
                 </div>
                 <div className="panel-body" style={{minHeight: '300px'}}>
