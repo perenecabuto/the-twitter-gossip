@@ -267,20 +267,18 @@ var GossipForm = React.createClass({
             <div className="form-inline row">
                 <div className="form-group col-lg-4 col-md-6 col-sm-6 col-xs-6">
                     <label>Gossip</label><br />
-                    <input className="form-control" value={this.state.gossip}
-                        onChange={(e) => this.setState({'gossip': e.target.value}) } />
+                    <input className="form-control" onChange={(e) => this.setState({'gossip': e.target.value}) } />
                 </div>
 
                 <div className="form-group col-lg-4 col-md-6 col-sm-6 col-xs-6">
                     <label>Subjects</label><br />
-                    <input className="form-control" value={this.state.subjects} placeholder="comma separated"
-                        onChange={(e) => this.setState({'subjects': e.target.value}) } />
+                    <input className="form-control" onChange={e => this.setState({'subjects': e.target.value}) } 
+                        placeholder="comma separated" />
                 </div>
 
                 <div className="form-group col-lg-4 col-md-12 col-sm-12 col-xs-12">
                     <label>Interval ({this.state.interval}s)</label><br />
-                    <input type="range" className="form-control" value={this.state.interval}
-                        onChange={(e) => this.setState({'interval': e.target.value}) } />
+                    <input type="range" className="form-control" onChange={e => this.setState({'interval': e.target.value}) } />
                 </div>
             </div>
             <br />
