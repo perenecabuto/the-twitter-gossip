@@ -17,7 +17,7 @@ type GossipEventHistoryPayload struct {
 	History []*EventGroupPayload `json:"history"`
 }
 
-func GossipEventHistoryPayloadFromModel(gossipLabel string, list []*GossipClassifierEvent) *GossipEventHistoryPayload {
+func NewGossipEventHistoryPayloadFromModel(gossipLabel string, list []*GossipClassifierEvent) *GossipEventHistoryPayload {
 	history := []*EventGroupPayload{}
 	for _, e := range list {
 		history = append(history, EventGroupPayloadFromModel(gossipLabel, e))
@@ -31,6 +31,15 @@ type GossipPayload struct {
 	Classifiers    map[string][]string `json:"classifiers"`
 	WorkerState    string              `json:"state"`
 	WorkerInterval time.Duration       `json:"interval"`
+}
+
+func NewGossipPayloadFromModel(g *Gossip, classifiers []*GossipClassifier, state string) *GossipPayload {
+	cPayload := map[string][]string{}
+	for _, c := range classifiers {
+		cPayload[c.Label] = c.Patterns
+	}
+
+	return &GossipPayload{g.Label, g.Subjects, cPayload, state, g.WorkerInterval / time.Second}
 }
 
 func (p *GossipPayload) ToModel() (*Gossip, []*GossipClassifier) {

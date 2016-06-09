@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -18,7 +19,7 @@ func NewGossipResourceHandler(s GossipService, p *GossipWorkerPool) *GossipResou
 }
 
 func (h *GossipResourceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	splittedPath := strings.Split(r.URL.Path, "/")
+	splittedPath := strings.SplitN(r.URL.Path, "/", 4)
 	gossip := splittedPath[2]
 	action := ""
 	if len(splittedPath) > 3 {
@@ -35,7 +36,7 @@ func (h *GossipResourceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 		} else if action == "stop" {
 			h.StopWorker(gossip, w, r)
 		} else if action == "history" {
-			h.ClassifierHistory(gossip, w, r)
+			h.EventsHistory(gossip, w, r)
 		} else {
 			h.Get(gossip, w, r)
 		}
@@ -142,14 +143,32 @@ func (h *GossipResourceHandler) StopWorker(gossipLabel string, w http.ResponseWr
 	h.Get(gossipLabel, w, r)
 }
 
-func (h *GossipResourceHandler) ClassifierHistory(gossipLabel string, w http.ResponseWriter, r *http.Request) {
-	events, err := h.service.FindClassifiersEvents(gossipLabel)
+func (h *GossipResourceHandler) EventsHistory(gossipLabel string, w http.ResponseWriter, r *http.Request) {
+	params := r.URL.Query()
+
+	startUnixTime, err := strconv.ParseInt(params.Get("from"), 10, 64)
 	if err != nil {
+		startUnixTime = time.Date(2015, 1, 1, 0, 0, 0, 0, time.UTC).Unix()
+	}
+	endUnixTime, err := strconv.ParseInt(params.Get("to"), 10, 64)
+	if err != nil {
+		endUnixTime = time.Now().Unix()
+	}
+
+	from := time.Unix(startUnixTime, 0)
+	to := time.Unix(endUnixTime, 0)
+	limit, err := strconv.Atoi(params.Get("limit"))
+	if err != nil {
+		limit = 30
+	}
+	events, err := h.service.FindClassifiersEvents(gossipLabel, from, to, limit)
+	if err != nil {
+		log.Println(err.Error())
 		http.NotFound(w, r)
 		return
 	}
 
-	payload := GossipEventHistoryPayloadFromModel(gossipLabel, events)
+	payload := NewGossipEventHistoryPayloadFromModel(gossipLabel, events)
 	response, err := json.Marshal(payload)
 	if err != nil {
 		log.Println(err)
@@ -167,11 +186,6 @@ func (h *GossipResourceHandler) buildGossipPayload(g *Gossip) *GossipPayload {
 		return nil
 	}
 
-	cPayload := map[string][]string{}
-	for _, c := range classifiers {
-		cPayload[c.Label] = c.Patterns
-	}
-
 	state := string(h.pool.WorkerState(WorkerID(g.Label)))
-	return &GossipPayload{g.Label, g.Subjects, cPayload, state, g.WorkerInterval / time.Second}
+	return NewGossipPayloadFromModel(g, classifiers, state)
 }

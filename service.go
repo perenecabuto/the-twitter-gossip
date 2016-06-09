@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"time"
 
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
@@ -11,7 +12,7 @@ type GossipService interface {
 	FindAllGossip() ([]*Gossip, error)
 	FindGossipByLabel(label string) (*Gossip, error)
 	FindClassifiersByGossip(g *Gossip) ([]*GossipClassifier, error)
-	FindClassifiersEvents(label string) ([]*GossipClassifierEvent, error)
+	FindClassifiersEvents(label string, from time.Time, to time.Time, limit int) ([]*GossipClassifierEvent, error)
 	CreateGossip(g *Gossip, c []*GossipClassifier) error
 	UpdateGossip(gossipLabel string, g *Gossip, c []*GossipClassifier) error
 	RemoveGossip(gossipLabel string) error
@@ -128,14 +129,17 @@ func (s *MongoGossipService) SaveEvent(e *GossipClassifierEvent) error {
 	return s.eventsC.Insert(e)
 }
 
-func (s *MongoGossipService) FindClassifiersEvents(label string) ([]*GossipClassifierEvent, error) {
+func (s *MongoGossipService) FindClassifiersEvents(
+	label string, from time.Time, to time.Time, limit int) ([]*GossipClassifierEvent, error) {
+	log.Println("Searching events with label:", label, "from:", from, "to:", to, "limited by:", limit)
 	g, err := s.FindGossipByLabel(label)
 	if err != nil {
 		return nil, err
 	}
 
 	result := []*GossipClassifierEvent{}
-	err = s.eventsC.Find(bson.M{"gossipid": g.ID}).Limit(30).Sort("-timestamp").All(&result)
+	query := bson.M{"gossipid": g.ID, "timestamp": bson.M{"$gte": from, "$lte": to.Add(time.Second)}}
+	err = s.eventsC.Find(query).Limit(limit).Sort("-timestamp").All(&result)
 	if err != nil {
 		return nil, err
 	}
