@@ -267,18 +267,22 @@ var GossipForm = React.createClass({
             <div className="form-inline row">
                 <div className="form-group col-lg-4 col-md-6 col-sm-6 col-xs-6">
                     <label>Gossip</label><br />
-                    <input className="form-control" onChange={(e) => this.setState({'gossip': e.target.value}) } />
+                    <input className="form-control" value={this.state.gossip}
+                        onChange={(e) => this.setState({'gossip': e.target.value}) } />
                 </div>
 
                 <div className="form-group col-lg-4 col-md-6 col-sm-6 col-xs-6">
                     <label>Subjects</label><br />
-                    <input className="form-control" onChange={e => this.setState({'subjects': e.target.value}) } 
+                    <input className="form-control" value={this.state.subjects}
+                        onChange={e => this.setState({'subjects': e.target.value}) } 
                         placeholder="comma separated" />
                 </div>
 
                 <div className="form-group col-lg-4 col-md-12 col-sm-12 col-xs-12">
                     <label>Interval ({this.state.interval}s)</label><br />
-                    <input type="range" className="form-control" onChange={e => this.setState({'interval': e.target.value}) } />
+                    <input type="range" className="form-control"
+                        value={this.state.interval}
+                        onChange={e => this.setState({'interval': e.target.value}) } />
                 </div>
             </div>
             <br />
@@ -311,6 +315,11 @@ var MultLineChartBox = React.createClass({
             maxItems: 20,
             data: []
         };
+    },
+    componentWillReceiveProps: function(props) {
+        if (props.fromDate != this.props.fromDate) {
+            this.loadInitialData(props.fromDate, props.toDate);
+        }
     },
     getRandomColor: function() {
         this.colorCount = this.colorCount || 0;
@@ -370,8 +379,17 @@ var MultLineChartBox = React.createClass({
 
         fieldData.values.push(value);
     },
-    loadInitialData: function() {
-        ajar.get(location.protocol + "//" + serviceURL + "/gossip/" + this.props.gossip + "/history").then(function (data) {
+    loadInitialData: function(fromDate, toDate) {
+        var url = location.protocol + "//" + serviceURL + "/gossip/" + this.props.gossip + "/history?";
+        fromDate = fromDate || this.props.fromDate;
+        if (fromDate) {
+            url += "&from=" + Math.round(fromDate.getTime() / 1000)
+        }
+        toDate = toDate || this.props.toDate;
+        if (toDate) {
+            url += "&to=" + Math.round(toDate.getTime() / 1000)
+        }
+        ajar.get(url).then(function (data) {
             var history = data.history;
             if (history === undefined || history.length == 0) {
                 return;
@@ -424,7 +442,7 @@ var GossipPanel = React.createClass({
     getInitialState: function() {
         return {
             gossip: this.props.gossip,
-            action: "history"
+            action: "realtime"
         };
     },
     showForm: function() {
