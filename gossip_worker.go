@@ -32,16 +32,6 @@ type GossipWorker struct {
 	EventChann  chan *GossipEventGroup
 }
 
-type ClassifierList []*GossipClassifier
-
-func (cl ClassifierList) Labels() []string {
-	labels := []string{}
-	for _, c := range cl {
-		labels = append(labels, c.Label)
-	}
-	return labels
-}
-
 func NewGossipWorker(gossip *Gossip, gossipClassifiers ClassifierList) *GossipWorker {
 	log.Println("Listenning Gossip: ", gossip.Label)
 	stream := NewTwitterStream(gossip.Subjects)

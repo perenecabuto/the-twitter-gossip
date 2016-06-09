@@ -26,3 +26,13 @@ type GossipClassifierEvent struct {
 	Events    map[string]int
 	Timestamp time.Time
 }
+
+type ClassifierList []*GossipClassifier
+
+func (cl ClassifierList) Labels() []string {
+	labels := []string{}
+	for _, c := range cl {
+		labels = append(labels, c.Label)
+	}
+	return labels
+}
