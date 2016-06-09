@@ -229,7 +229,7 @@ var GossipForm = React.createClass({
         };
 
         var response;
-        if (this.state.gossip) {
+        if (this.props.gossip !== undefined) {
             response = ajar.put(location.protocol + "//" + serviceURL + "/gossip/" + this.props.gossip, payload);
         } else {
             response = ajar.post(location.protocol + "//" + serviceURL + "/gossip/", payload);
