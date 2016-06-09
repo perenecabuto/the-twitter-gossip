@@ -27,8 +27,12 @@ type TimedLabelCounter struct {
 	OnTimeChann chan *EventGroup
 }
 
-func NewTimedLabelCounter() *TimedLabelCounter {
-	return &TimedLabelCounter{events: EventCount{},
+func NewTimedLabelCounter(labels []string) *TimedLabelCounter {
+	events := EventCount{}
+	for _, l := range labels {
+		events[l] = 0
+	}
+	return &TimedLabelCounter{events: events,
 		reportChann: make(chan string), stopChann: make(chan bool),
 		OnTimeChann: make(chan *EventGroup)}
 }

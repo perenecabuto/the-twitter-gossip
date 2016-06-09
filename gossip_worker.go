@@ -32,11 +32,21 @@ type GossipWorker struct {
 	EventChann  chan *GossipEventGroup
 }
 
-func NewGossipWorker(gossip *Gossip, gossipClassifiers []*GossipClassifier) *GossipWorker {
+type ClassifierList []*GossipClassifier
+
+func (cl ClassifierList) Labels() []string {
+	labels := []string{}
+	for _, c := range cl {
+		labels = append(labels, c.Label)
+	}
+	return labels
+}
+
+func NewGossipWorker(gossip *Gossip, gossipClassifiers ClassifierList) *GossipWorker {
 	log.Println("Listenning Gossip: ", gossip.Label)
 	stream := NewTwitterStream(gossip.Subjects)
 	classifiers := ConvertMessageClassifiers(gossipClassifiers)
-	timeCounter := NewTimedLabelCounter()
+	timeCounter := NewTimedLabelCounter(gossipClassifiers.Labels())
 	listener := NewMessageClassifierListener(classifiers)
 	stream.AddListener(listener)
 
