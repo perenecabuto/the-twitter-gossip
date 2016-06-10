@@ -2,6 +2,7 @@ package main
 
 import (
 	"regexp"
+	"strings"
 
 	"github.com/dghubble/go-twitter/twitter"
 )
@@ -14,6 +15,9 @@ type MessageClassifier struct {
 func NewMessageClassifier(label string, patterns []string) *MessageClassifier {
 	reList := []*regexp.Regexp{}
 	for _, p := range patterns {
+		if strings.TrimSpace(p) == "" {
+			continue
+		}
 		reList = append(reList, regexp.MustCompile(p))
 	}
 
