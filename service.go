@@ -11,12 +11,12 @@ import (
 type GossipService interface {
 	FindAllGossip() ([]*Gossip, error)
 	FindGossipByLabel(label string) (*Gossip, error)
-	FindClassifiersByGossip(g *Gossip) ([]*GossipClassifier, error)
+	FindClassifiersByGossip(g *Gossip) (ClassifierList, error)
 	FindClassifiersEvents(label string, from time.Time, to time.Time, limit int) ([]*GossipClassifierEvent, error)
-	CreateGossip(g *Gossip, c []*GossipClassifier) error
-	UpdateGossip(gossipLabel string, g *Gossip, c []*GossipClassifier) error
+	CreateGossip(g *Gossip, c ClassifierList) error
+	UpdateGossip(gossipLabel string, g *Gossip, c ClassifierList) error
 	RemoveGossip(gossipLabel string) error
-	SaveClassifiers(g *Gossip, c []*GossipClassifier) error
+	SaveClassifiers(g *Gossip, c ClassifierList) error
 	SaveEvent(e *GossipClassifierEvent) error
 }
 
@@ -62,13 +62,13 @@ func (s *MongoGossipService) FindGossipByLabel(label string) (*Gossip, error) {
 	return result, err
 }
 
-func (s *MongoGossipService) FindClassifiersByGossip(g *Gossip) ([]*GossipClassifier, error) {
-	results := []*GossipClassifier{}
+func (s *MongoGossipService) FindClassifiersByGossip(g *Gossip) (ClassifierList, error) {
+	results := ClassifierList{}
 	err := s.classifiersC.Find(bson.M{"gossipid": g.ID}).All(&results)
 	return results, err
 }
 
-func (s *MongoGossipService) CreateGossip(g *Gossip, classifiers []*GossipClassifier) error {
+func (s *MongoGossipService) CreateGossip(g *Gossip, classifiers ClassifierList) error {
 	log.Println("Create", g.Label)
 	err := s.gossipC.Insert(g)
 	if err != nil {
@@ -82,7 +82,7 @@ func (s *MongoGossipService) CreateGossip(g *Gossip, classifiers []*GossipClassi
 	return nil
 }
 
-func (s *MongoGossipService) UpdateGossip(gossipLabel string, g *Gossip, classifiers []*GossipClassifier) error {
+func (s *MongoGossipService) UpdateGossip(gossipLabel string, g *Gossip, classifiers ClassifierList) error {
 	log.Println("Update", gossipLabel)
 	found, err := s.FindGossipByLabel(gossipLabel)
 	if err != nil {
@@ -112,7 +112,7 @@ func (s *MongoGossipService) RemoveGossip(gossipLabel string) error {
 	return nil
 }
 
-func (s *MongoGossipService) SaveClassifiers(g *Gossip, classifiers []*GossipClassifier) error {
+func (s *MongoGossipService) SaveClassifiers(g *Gossip, classifiers ClassifierList) error {
 	s.classifiersC.RemoveAll(bson.M{"gossipid": g.ID})
 	for _, c := range classifiers {
 		c.GossipId = g.ID
@@ -136,6 +136,10 @@ func (s *MongoGossipService) FindClassifiersEvents(
 	if err != nil {
 		return nil, err
 	}
+	classifiers, err := s.FindClassifiersByGossip(g)
+	if err != nil {
+		return nil, err
+	}
 
 	result := []*GossipClassifierEvent{}
 	query := bson.M{"gossipid": g.ID, "timestamp": bson.M{"$gte": from, "$lte": to.Add(time.Second)}}
@@ -144,5 +148,21 @@ func (s *MongoGossipService) FindClassifiersEvents(
 		return nil, err
 	}
 
+	s.cleanEventLabelsByClassifiers(result, classifiers)
+
 	return result, nil
+}
+
+func (s *MongoGossipService) cleanEventLabelsByClassifiers(result []*GossipClassifierEvent, classifiers ClassifierList) {
+	labels := map[string]bool{}
+	for _, l := range classifiers.Labels() {
+		labels[l] = true
+	}
+	for _, e := range result {
+		for k, _ := range e.Events {
+			if _, ok := labels[k]; !ok {
+				delete(e.Events, k)
+			}
+		}
+	}
 }
