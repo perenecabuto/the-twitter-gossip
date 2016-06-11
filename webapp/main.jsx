@@ -37,7 +37,15 @@ var MessageManager = (function() {
 
     return {
         onMessage: function(callback) {
+            console.log("Register", callback);
             listeners.push(callback);
+        },
+        unregister: function(callback) {
+            var index = listeners.indexOf(callback);
+            if (index > -1) {
+                console.log("Unregister", callback);
+                listeners.splice(index, 1);
+            }
         }
     };
 })();
@@ -378,7 +386,7 @@ var MultLineChartBox = React.createClass({
         }
 
         if (fieldData.values.length >= this.state.maxItems) {
-            fieldData.values.shift();
+            fieldData.values.splice(0, 1);
         }
 
         fieldData.values.push(value);
@@ -418,24 +426,26 @@ var MultLineChartBox = React.createClass({
             this.state.data.push({field: "top", key: "", color: "transparent", values: []});
         }
 
-        var gossip = this.state.gossip;
-        if (gossip) {
+        if (this.state.gossip) {
             this.loadInitialData();
         }
-
         if (this.props.realtime) {
-            MessageManager.onMessage(function(message) {
-                if (!this.isMounted() || message.gossip !== undefined && message.gossip !== gossip) {
-                    return;
-                }
-
-                for (var key in message.events) {
-                    this.addFieldValue(key, {x: new Date().getTime(), y: message.events[key]});
-                }
-
-                this.chart.update();
-            }.bind(this));
+            MessageManager.onMessage(this.onMessage);
         }
+    },
+    componentWillUnmount: function() {
+        MessageManager.unregister(this.onMessage);
+    },
+    onMessage: function(message) {
+        if (!this.isMounted() || message.gossip !== undefined && message.gossip !== this.state.gossip) {
+            return;
+        }
+
+        for (var key in message.events) {
+            this.addFieldValue(key, {x: new Date().getTime(), y: message.events[key]});
+        }
+
+        this.chart.update();
     },
     render: function() {
         this.renderChart();
@@ -550,18 +560,17 @@ var App = React.createClass({
     componentDidMount: function() {
         ajar.get(location.protocol + "//" + serviceURL + "/gossip/").then(function(data) {
             data.gossips.reverse().map((g) => this.addGossip(g.gossip));
-            this.setState({});
         }.bind(this));
 
         MessageManager.onMessage(function(message) {
             this.addGossip(message.gossip);
-            this.setState({});
         }.bind(this));
     },
     addGossip: function(gossip) {
         var exists = Boolean(this.state.gossips.find((g) => g == gossip));
         if (!exists) {
             this.state.gossips.push(gossip);
+            this.setState({gossips: this.state.gossips});
         }
     },
     showNewGossipForm: function() {
@@ -571,9 +580,8 @@ var App = React.createClass({
         this.setState({showNewGossipForm: false});
     },
     onSaveNewGossip: function(gossip) {
-        this.setState({showNewGossipForm: false});
         this.state.gossips.unshift(gossip.gossip);
-        this.setState({});
+        this.setState({showNewGossipForm: false, gossips: this.state.gossips});
     },
     render: function() {
         return (
