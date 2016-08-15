@@ -59,53 +59,39 @@ var MessageManager = (function() {
 var HistoryChart = React.createClass({
     getInitialState: function() {
         return {
-            fromDateInHours: 0,
-            startDate: 0,
-            endDate: 0,
-            formattedStartDate: 'now',
-            formattedEndDate: 'now'
+            interval: 0,
+            toDate: new Date(),
+            formatedIntervalDate: 'now'
         }
     },
-    componentDidMount: function() {
-        var now = new Date();
-        this.setState({
-            startDate: now,
-            endDate: now,
-        });
-    },
-    handleStartDate: function(e) {
-        var timeUnit = "hours";
-        var formattedStartDate = Math.abs(e.target.value) + " " + timeUnit + " ago";
-        this.setState({fromDateInHours: e.target.value, formattedStartDate: formattedStartDate})
-    },
-    getHistory: function() {
-        var endDate = new Date();
-        var startDate = new Date();
-        var hours = this.state.fromDateInHours;
-        var hoursInterval = 10;
-        endDate.setTime(endDate.getTime() + (hours*60*60*1000));
-        startDate.setTime(endDate.getTime() - (hoursInterval*60*60*1000));
-        this.setState({endDate: endDate, startDate: startDate})
+    handleInterval: function(e) {
+        var interval = e.target.value;
+        if (interval === 0) {
+            this.setState(this.getInitialState());
+            return;
+        };
+        var timeUnit = "minutes";
+        var formatedIntervalDate = Math.abs(interval) + " " + timeUnit + " ago";
+        var toDate = new Date();
+        toDate.setTime(toDate.getTime() + (interval*60*1000));
+
+        this.setState({toDate: toDate, interval: interval, formatedIntervalDate: formatedIntervalDate});
     },
     render: function() {
         return (
             <div>
                 <div className="row">
-                    <div className="col-lg-4 col-md-4 col-sm-4 col-xs-4">
-                        <label>from:</label> <span>{this.state.formattedStartDate}</span>
-                        <input type="range" onChange={this.handleStartDate} min={"-10"} max={"0"} value={this.state.fromDateInHours} />
-                    </div>
-                    <div className="col-lg-3 col-md-3 col-sm-3 col-xs-3">
-                        <button type="button" className="btn btn-link" onClick={this.getHistory}>
-                            <span className="glyphicon glyphicon-search" aria-hidden="true"></span> search
-                        </button>
+                    <div className="col-lg-12 col-md-12 col-sm-12 col-xs-12">
+                        <label>from:</label> <span>{this.state.formatedIntervalDate}</span>
+                        <input type="range" onChange={this.handleInterval} min={"-60"} max={"0"} value={this.state.interval} />
                     </div>
                 </div>
 
                 <hr />
+
                 <div className="row">
                     <div className="col-lg-12 col-md-12 col-sm-12 col-xs-12">
-                        <MultLineChartBox gossip={this.props.gossip} fromDate={this.state.startDate} toDate={this.state.endDate}/>
+                        <MultLineChartBox gossip={this.props.gossip} toDate={this.state.toDate} />
                     </div>
                 </div>
             </div>
@@ -332,7 +318,7 @@ var MultLineChartBox = React.createClass({
         };
     },
     componentWillReceiveProps: function(props) {
-        if (props.fromDate != this.props.fromDate) {
+        if (props.fromDate != this.props.fromDate || props.toDate != this.props.toDate) {
             this.loadInitialData(props.gossip, props.fromDate, props.toDate);
         } else if (props.gossip != this.props.gossip) {
             this.loadInitialData(props.gossip, null, null);
@@ -401,11 +387,11 @@ var MultLineChartBox = React.createClass({
         var url = location.protocol + "//" + serviceURL + "/gossip/" + gossip + "/history?";
         fromDate = fromDate || this.props.fromDate;
         if (fromDate) {
-            url += "&from=" + Math.round(fromDate.getTime() / 1000)
+            url += "&from=" + Math.round(fromDate.getTime() / 1000);
         }
         toDate = toDate || this.props.toDate;
         if (toDate) {
-            url += "&to=" + Math.round(toDate.getTime() / 1000)
+            url += "&to=" + Math.round(toDate.getTime() / 1000);
         }
         ajar.get(url).then(function (data) {
             var history = data.history;
@@ -434,6 +420,7 @@ var MultLineChartBox = React.createClass({
         if (this.state.gossip) {
             this.loadInitialData();
         }
+
         if (this.props.realtime) {
             MessageManager.onMessage(this.onMessage);
         }
