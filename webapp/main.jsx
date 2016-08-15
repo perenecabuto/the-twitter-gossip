@@ -437,7 +437,9 @@ var MultLineChartBox = React.createClass({
             this.addFieldValue(key, {x: new Date().getTime(), y: message.events[key]});
         }
 
-        this.chart.update();
+        if (this.chart != undefined) {
+            this.chart.update();
+        }
     },
     render: function() {
         this.renderChart();
