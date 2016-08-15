@@ -11,6 +11,7 @@ var serviceURL = "the-twitter-gossip.herokuapp.com";
 
 var MessageManager = (function() {
     var webSocket;
+    var refreshWindow = false;
     var listeners = [];
 
     function connectWebsocket() {
@@ -18,10 +19,14 @@ var MessageManager = (function() {
         webSocket = new WebSocket("ws://" + serviceURL + "/events");
         webSocket.onopen = function(event) {
             console.log("open", event);
+            if (refreshWindow) {
+                window.location.reload();
+            }
         };
 
         webSocket.onclose = function() {
             console.log("connection closed");
+            refreshWindow = true;
             setTimeout(connectWebsocket, 1000);
         }
 
